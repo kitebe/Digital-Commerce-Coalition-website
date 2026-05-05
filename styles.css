@@ -77,6 +77,7 @@
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 body {
@@ -85,6 +86,7 @@ body {
   background: var(--magenta);
   font-family: var(--site-font);
   overflow-x: hidden;
+  overflow-x: clip;
 }
 
 a {
@@ -99,8 +101,7 @@ a {
 }
 
 .site-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   display: flex;
   align-items: center;
@@ -412,15 +413,18 @@ h1 em {
 }
 
 .work-scroll {
+  height: 175svh;
   padding-inline: 0;
   background: var(--magenta);
 }
 
 .work {
-  position: relative;
+  position: sticky;
+  top: 0;
   display: grid;
   width: calc(100vw - 34px);
-  min-height: clamp(820px, 78vw, 1200px);
+  height: 100svh;
+  min-height: 0;
   align-items: center;
   justify-items: center;
   margin-inline: auto;
@@ -873,7 +877,14 @@ h1 em {
     margin-top: 26px;
   }
 
+  .work-scroll {
+    height: auto;
+  }
+
   .work {
+    position: relative;
+    top: auto;
+    height: auto;
     min-height: auto;
     gap: 24px;
     padding: 90px 34px;

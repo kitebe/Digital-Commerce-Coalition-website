@@ -11,6 +11,7 @@ if (workBubbles.length === 4) {
   ];
   const hiddenSlots = ["is-hidden", "is-hidden-left", "is-hidden-right"];
   const stackedDial = window.matchMedia("(max-width: 759px)");
+  const workScroll = document.querySelector(".work-scroll");
   const workSection = document.querySelector(".work");
   let activeIndex = -1;
   let frame = null;
@@ -54,10 +55,11 @@ if (workBubbles.length === 4) {
   };
 
   const getActiveIndex = () => {
-    if (!workSection || stackedDial.matches) return 0;
+    if (!workScroll || !workSection || stackedDial.matches) return 0;
 
-    const rect = workSection.getBoundingClientRect();
-    const progress = Math.min(1, Math.max(0, -rect.top / (rect.height * 0.75)));
+    const rect = workScroll.getBoundingClientRect();
+    const scrollDistance = workSection.getBoundingClientRect().height * 0.75;
+    const progress = Math.min(1, Math.max(0, -rect.top / scrollDistance));
 
     return Math.min(workBubbles.length - 1, Math.floor(progress * workBubbles.length));
   };
