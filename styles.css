@@ -479,7 +479,9 @@ h1 em {
 
 .work-bubble.is-left,
 .work-bubble.is-right,
-.work-bubble.is-hidden {
+.work-bubble.is-hidden,
+.work-bubble.is-hidden-left,
+.work-bubble.is-hidden-right {
   --work-size: clamp(390px, 37vw, 620px);
   --work-padding: clamp(72px, 7vw, 120px);
   --work-opacity: 0.98;
@@ -498,13 +500,20 @@ h1 em {
   --work-transform: translate(-56%, -32%) rotate(16deg);
 }
 
-.work-bubble.is-hidden {
-  --work-left: 50%;
+.work-bubble.is-hidden,
+.work-bubble.is-hidden-right {
+  --work-left: 100%;
   --work-top: 50%;
-  --work-opacity: 0;
-  --work-visibility: hidden;
   --work-pointer-events: none;
-  --work-transform: translate(-50%, -50%) scale(0.95);
+  --work-transform: translate(8%, -32%) rotate(16deg);
+  z-index: 0;
+}
+
+.work-bubble.is-hidden-left {
+  --work-left: 0;
+  --work-top: 50%;
+  --work-pointer-events: none;
+  --work-transform: translate(-108%, -34%) rotate(-16deg);
   z-index: 0;
 }
 
@@ -881,7 +890,9 @@ h1 em {
   .work-bubble.is-center,
   .work-bubble.is-left,
   .work-bubble.is-right,
-  .work-bubble.is-hidden {
+  .work-bubble.is-hidden,
+  .work-bubble.is-hidden-left,
+  .work-bubble.is-hidden-right {
     left: auto;
     top: auto;
     width: min(100%, 360px);
@@ -895,7 +906,9 @@ h1 em {
   .work-bubble.is-center,
   .work-bubble.is-left,
   .work-bubble.is-right,
-  .work-bubble.is-hidden {
+  .work-bubble.is-hidden,
+  .work-bubble.is-hidden-left,
+  .work-bubble.is-hidden-right {
     background: var(--bubble-fill);
   }
 

@@ -1,7 +1,15 @@
 const workBubbles = Array.from(document.querySelectorAll("[data-work-bubble]"));
 
 if (workBubbles.length === 4) {
-  const slotClasses = ["is-center", "is-left", "is-right", "is-hidden"];
+  const slotClasses = [
+    "is-center",
+    "is-left",
+    "is-right",
+    "is-hidden",
+    "is-hidden-left",
+    "is-hidden-right",
+  ];
+  const hiddenSlots = ["is-hidden", "is-hidden-left", "is-hidden-right"];
   const stackedDial = window.matchMedia("(max-width: 759px)");
   const workSection = document.querySelector(".work");
   let activeIndex = -1;
@@ -19,6 +27,17 @@ if (workBubbles.length === 4) {
   const getCurrentSlot = (bubble) =>
     slotClasses.find((slotClass) => bubble.classList.contains(slotClass));
 
+  const isHiddenSlot = (slot) => hiddenSlots.includes(slot);
+
+  const getHiddenEntrySlot = (direction) =>
+    direction < 0 ? "is-hidden-left" : "is-hidden-right";
+
+  const getHiddenExitSlot = (currentSlot, direction) => {
+    if (currentSlot === "is-left" || direction > 0) return "is-hidden-left";
+    if (currentSlot === "is-right" || direction < 0) return "is-hidden-right";
+    return getHiddenEntrySlot(direction);
+  };
+
   const applySlot = (bubble, slot, { instant = false } = {}) => {
     if (instant) bubble.classList.add("no-motion");
 
@@ -26,7 +45,7 @@ if (workBubbles.length === 4) {
     bubble.classList.add(slot);
     bubble.setAttribute(
       "aria-hidden",
-      !stackedDial.matches && slot === "is-hidden" ? "true" : "false",
+      !stackedDial.matches && isHiddenSlot(slot) ? "true" : "false",
     );
 
     if (!instant) return;
@@ -47,19 +66,30 @@ if (workBubbles.length === 4) {
     const nextActive = getActiveIndex();
 
     if (nextActive === activeIndex && !stackedDial.matches) return;
+    const direction = activeIndex < 0 ? 1 : Math.sign(nextActive - activeIndex) || 1;
     activeIndex = nextActive;
+    const hiddenEntrySlot = getHiddenEntrySlot(direction);
 
     workBubbles.forEach((bubble, index) => {
-      const currentSlot = getCurrentSlot(bubble);
+      const currentSlot = getCurrentSlot(bubble) || hiddenEntrySlot;
       const nextSlot = getSlot(index, activeIndex);
 
-      if (nextSlot === "is-hidden") {
-        applySlot(bubble, nextSlot, { instant: !stackedDial.matches });
+      if (isHiddenSlot(nextSlot)) {
+        applySlot(
+          bubble,
+          isHiddenSlot(currentSlot)
+            ? hiddenEntrySlot
+            : getHiddenExitSlot(currentSlot, direction),
+          { instant: isHiddenSlot(currentSlot) && !stackedDial.matches },
+        );
         return;
       }
 
-      if (currentSlot === "is-hidden" && !stackedDial.matches) {
-        applySlot(bubble, nextSlot, { instant: true });
+      if (isHiddenSlot(currentSlot) && !stackedDial.matches) {
+        applySlot(bubble, hiddenEntrySlot, { instant: true });
+        window.requestAnimationFrame(() => {
+          applySlot(bubble, nextSlot);
+        });
         return;
       }
 
