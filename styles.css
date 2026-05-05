@@ -130,7 +130,7 @@ a {
   min-width: 0;
   font-family: var(--site-font);
   font-size: clamp(17px, 1.15vw, 22px);
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -361,8 +361,9 @@ h1 em {
 
 .focus .section-kicker {
   font-family: var(--site-font);
-  font-size: clamp(46px, 4.05vw, 62px);
-  line-height: 1;
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 64px;
 }
 
 .focus-list {
@@ -664,11 +665,11 @@ h1 em {
 }
 
 .contact a {
-  justify-self: start;
-  font-family: var(--body-font);
-  font-size: clamp(20px, 1.62vw, 31px);
-  font-weight: 900;
-  line-height: 1.2;
+  justify-self: end;
+  font-family: var(--site-font);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 64px;
   overflow-wrap: anywhere;
 }
 
@@ -700,6 +701,10 @@ h1 em {
   font-size: 15px;
   font-weight: 400;
   line-height: 30px;
+}
+
+.site-footer strong {
+  font-weight: 600;
 }
 
 .footer-right {
@@ -830,28 +835,32 @@ h1 em {
   }
 
   .about-orbits {
-    width: min(100%, 324px);
-    margin-top: 42px;
-    padding-top: 12px;
+    width: min(100%, calc(100vw - 96px), 360px);
+    margin-top: 46px;
+    padding-top: 0;
   }
 
   .about-orbits article {
-    height: 164px;
-    padding: 24px 30px;
+    height: 186px;
+    padding: 34px 34px 30px;
+    align-content: start;
   }
 
   .about-orbits article:last-child {
-    margin-top: -24px;
+    margin-top: -18px;
+    padding-top: 44px;
   }
 
   .about-orbits h3 {
-    font-size: clamp(34px, 10.8vw, 44px);
+    font-size: clamp(34px, 9.8vw, 42px);
   }
 
   .about-orbits p {
-    margin-top: 12px;
-    font-size: 16px;
-    line-height: 1.25;
+    width: min(100%, 236px);
+    max-width: 236px;
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.18;
   }
 
   .focus {
@@ -860,7 +869,8 @@ h1 em {
   }
 
   .focus .section-kicker {
-    font-size: clamp(38px, 10.8vw, 50px);
+    font-size: 60px;
+    line-height: 64px;
   }
 
   .photo {
@@ -874,8 +884,8 @@ h1 em {
 
   .council .section-kicker,
   .contact .section-kicker {
-    font-size: clamp(36px, 10.4vw, 48px);
-    line-height: 1.06;
+    font-size: 60px;
+    line-height: 64px;
   }
 
   .logo-row {
@@ -889,32 +899,32 @@ h1 em {
 
   .hero {
     aspect-ratio: auto;
-    height: clamp(610px, 162vw, 660px);
+    height: clamp(780px, 218vw, 840px);
     min-height: 0;
     overflow: hidden;
   }
 
   .hero-copy {
     position: absolute;
-    top: clamp(405px, 112vw, 440px);
-    left: clamp(42px, 12vw, 54px);
-    right: clamp(30px, 8vw, 42px);
+    top: clamp(228px, 66vw, 258px);
+    left: clamp(36px, 11vw, 52px);
+    right: auto;
     width: auto;
-    max-width: none;
+    max-width: min(220px, calc(100vw - 82px));
     padding: 0;
   }
 
   .hero h1 {
     width: auto;
-    max-width: 302px;
+    max-width: min(220px, calc(100vw - 82px));
     min-height: 0;
-    font-size: clamp(24px, 6.7vw, 28px);
-    line-height: 1.08;
+    font-size: 24px;
+    line-height: 1.06;
   }
 
   .hero-art img {
     left: 50%;
-    width: max(580px, 150vw);
+    width: clamp(760px, 216vw, 860px);
     max-width: none;
     transform: translateX(-50%);
   }
@@ -1009,8 +1019,8 @@ h1 em {
   }
 
   .contact a {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 24px;
+    line-height: 64px;
   }
 
   .site-footer {
@@ -1055,7 +1065,7 @@ h1 em {
   }
 
   .hero {
-    height: clamp(590px, 158vw, 640px);
+    height: clamp(780px, 218vw, 840px);
   }
 
   .about,
@@ -1067,7 +1077,16 @@ h1 em {
   }
 
   .about-orbits article {
+    height: 176px;
     padding-inline: 26px;
+  }
+
+  .about-orbits {
+    width: min(100%, calc(100vw - 72px));
+  }
+
+  .about-orbits article:last-child {
+    padding-top: 40px;
   }
 
   .work-bubble,
@@ -1088,13 +1107,12 @@ h1 em {
   }
 
   .hero-copy {
-    top: 398px;
+    top: 242px;
     left: 38px;
-    right: 28px;
   }
 
   .hero h1 {
-    font-size: 23px;
+    font-size: 24px;
   }
 
   .work-bubble,
