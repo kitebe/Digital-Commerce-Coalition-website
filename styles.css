@@ -67,6 +67,7 @@
   --white: #fffaf7;
   --text: #3d2e54;
   --shadow: 0 24px 60px rgba(115, 74, 132, 0.18);
+  --page-shell-width: calc(100vw - 34px);
   --section-content-edge: clamp(72px, 8.55vw, 164px);
 }
 
@@ -184,7 +185,7 @@ section {
 
 .hero {
   display: block;
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   height: max(680px, calc(74vw - 25px));
   aspect-ratio: 1415 / 1047;
   margin-inline: auto;
@@ -257,7 +258,7 @@ h1 em {
 .about {
   grid-template-columns: minmax(0, 1fr) minmax(560px, 0.82fr);
   align-items: start;
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   min-height: 930px;
   margin-inline: auto;
   padding: clamp(210px, 12.8vw, 246px) var(--section-content-edge) 120px;
@@ -346,7 +347,7 @@ h1 em {
 }
 
 .focus {
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   min-height: clamp(780px, 60.7vw, 932px);
   margin-inline: auto;
   padding-inline: var(--section-content-edge);
@@ -381,11 +382,16 @@ h1 em {
 }
 
 .photo {
+  position: relative;
   width: clamp(260px, 23.2vw, 356px);
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 50%;
   background: var(--lavender);
+  transition:
+    box-shadow 280ms ease,
+    transform 280ms ease;
+  will-change: transform;
 }
 
 .photo img {
@@ -393,6 +399,23 @@ h1 em {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  transform-origin: 50% 58%;
+  transition:
+    filter 280ms ease,
+    transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.focus-card:hover .photo,
+.focus-card:focus-within .photo {
+  transform: translateY(-10px) scale(1.03);
+  box-shadow: 0 22px 44px rgba(118, 100, 200, 0.2);
+}
+
+.focus-card:hover .photo img,
+.focus-card:focus-within .photo img {
+  filter: saturate(1.08) contrast(1.03);
+  transform: translateY(-8px) rotate(1deg) scale(1.08);
 }
 
 .focus-card h3 {
@@ -420,7 +443,7 @@ h1 em {
 .work {
   position: relative;
   display: grid;
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   min-height: clamp(820px, 78vw, 1200px);
   align-items: center;
   justify-items: center;
@@ -454,13 +477,13 @@ h1 em {
   pointer-events: var(--work-pointer-events, auto);
   transform: var(--work-transform);
   transition:
-    left 360ms cubic-bezier(0.3, 0, 0.2, 1),
-    top 360ms cubic-bezier(0.3, 0, 0.2, 1),
-    width 360ms cubic-bezier(0.3, 0, 0.2, 1),
-    padding 360ms cubic-bezier(0.3, 0, 0.2, 1),
-    opacity 120ms ease,
-    background-color 180ms ease,
-    transform 360ms cubic-bezier(0.3, 0, 0.2, 1);
+    left 260ms cubic-bezier(0.3, 0, 0.2, 1),
+    top 260ms cubic-bezier(0.3, 0, 0.2, 1),
+    width 260ms cubic-bezier(0.3, 0, 0.2, 1),
+    padding 260ms cubic-bezier(0.3, 0, 0.2, 1),
+    opacity 90ms ease,
+    background-color 140ms ease,
+    transform 260ms cubic-bezier(0.3, 0, 0.2, 1);
   will-change: left, top, width, opacity, transform;
 }
 
@@ -555,7 +578,7 @@ h1 em {
 }
 
 .council {
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   min-height: clamp(760px, 47.85vw, 918px);
   margin-inline: auto;
   padding-inline: var(--section-content-edge);
@@ -601,10 +624,6 @@ h1 em {
   will-change: transform;
 }
 
-.logo-row:hover .logo-track {
-  animation-play-state: paused;
-}
-
 .logo-set {
   display: flex;
   flex: 0 0 auto;
@@ -642,6 +661,12 @@ h1 em {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .photo,
+  .photo img {
+    transition: none;
+    animation: none;
+  }
+
   .logo-track {
     animation: none;
   }
@@ -651,11 +676,11 @@ h1 em {
   display: grid;
   grid-template-columns: minmax(300px, 560px) minmax(420px, 1fr);
   gap: clamp(60px, 5vw, 96px);
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   min-height: clamp(325px, 30.45vw, 585px);
   margin-inline: auto;
   align-items: center;
-  padding: clamp(118px, 12.9vw, 248px) clamp(72px, 12.25vw, 235px)
+  padding: clamp(118px, 12.9vw, 248px) var(--section-content-edge)
     clamp(92px, 8.8vw, 170px);
   background: var(--cyan);
 }
@@ -720,6 +745,10 @@ h1 em {
 }
 
 @media (min-width: 760px) {
+  :root {
+    --page-shell-width: calc(100vw - 58px);
+  }
+
   .section-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -793,6 +822,8 @@ h1 em {
   main::after {
     top: 18px;
     bottom: 18px;
+    width: 7px;
+    background-size: 7px 105px;
   }
 
   main::before {
@@ -807,10 +838,14 @@ h1 em {
     padding-inline: clamp(24px, 7vw, 30px);
   }
 
+  main > section + section {
+    margin-top: -1px;
+  }
+
   .about {
     grid-template-columns: 1fr;
     min-height: auto;
-    padding: 74px clamp(24px, 7vw, 30px) 78px;
+    padding: 32px clamp(24px, 7vw, 30px) 78px;
   }
 
   .focus,
@@ -1019,12 +1054,12 @@ h1 em {
   }
 
   .contact a {
-    font-size: 24px;
+    font-size: clamp(15px, 4.2vw, 18px);
     line-height: 64px;
   }
 
   .site-footer {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
     gap: 34px;
     min-height: auto;
@@ -1033,6 +1068,18 @@ h1 em {
 
   .footer-logo {
     width: min(100%, 190px);
+  }
+
+  .footer-left {
+    order: 2;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .footer-right {
+    order: 1;
+    justify-items: center;
+    text-align: center;
   }
 
   .koan-wordmark {
@@ -1044,10 +1091,6 @@ h1 em {
     line-height: 30px;
   }
 
-  .footer-right {
-    justify-items: start;
-    text-align: left;
-  }
 }
 
 @media (max-width: 440px) {
