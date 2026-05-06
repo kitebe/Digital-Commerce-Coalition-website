@@ -161,11 +161,11 @@ main::after {
 }
 
 main::before {
-  left: 29px;
+  left: 42px;
 }
 
 main::after {
-  right: 29px;
+  right: 42px;
 }
 
 section {
@@ -362,9 +362,9 @@ h1 em {
 
 .focus .section-kicker {
   font-family: var(--site-font);
-  font-size: 60px;
+  font-size: clamp(48px, 4vw, 76px);
   font-weight: 700;
-  line-height: 64px;
+  line-height: 1;
 }
 
 .focus-list {
@@ -590,9 +590,9 @@ h1 em {
 .council .section-kicker,
 .contact .section-kicker {
   font-family: var(--site-font);
-  font-size: 60px;
+  font-size: clamp(48px, 4vw, 76px);
   font-weight: 700;
-  line-height: 64px;
+  line-height: 1;
 }
 
 .logo-row {
@@ -845,7 +845,7 @@ h1 em {
   .about {
     grid-template-columns: 1fr;
     min-height: auto;
-    padding: 32px clamp(24px, 7vw, 30px) 78px;
+    padding: 0px clamp(24px, 7vw, 30px) 78px;
   }
 
   .focus,
@@ -904,8 +904,8 @@ h1 em {
   }
 
   .focus .section-kicker {
-    font-size: 60px;
-    line-height: 64px;
+    font-size: clamp(40px, 11.2vw, 50px);
+    line-height: 1.02;
   }
 
   .photo {
@@ -919,8 +919,8 @@ h1 em {
 
   .council .section-kicker,
   .contact .section-kicker {
-    font-size: 60px;
-    line-height: 64px;
+    font-size: clamp(40px, 11.2vw, 50px);
+    line-height: 1.02;
   }
 
   .logo-row {
@@ -958,10 +958,10 @@ h1 em {
   }
 
   .hero-art img {
-    left: 50%;
-    width: clamp(760px, 216vw, 860px);
+    left: 47%;
+    width: clamp(793px, 288vw, 994px);
     max-width: none;
-    transform: translateX(-50%);
+    transform: translateX(-49%);
   }
 
   .focus-list {
@@ -1054,8 +1054,8 @@ h1 em {
   }
 
   .contact a {
-    font-size: clamp(15px, 4.2vw, 18px);
-    line-height: 64px;
+    font-size: clamp(13px, 3.65vw, 16px);
+    line-height: 1.4;
   }
 
   .site-footer {
@@ -1108,7 +1108,7 @@ h1 em {
   }
 
   .hero {
-    height: clamp(780px, 218vw, 840px);
+    height: clamp(780px, 218vw, 780px);
   }
 
   .about,
