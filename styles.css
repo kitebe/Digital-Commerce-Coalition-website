@@ -678,9 +678,9 @@ h1 em {
 }
 
 .logo-row {
-  --logo-gap: clamp(32px, 2.5vw, 48px);
+  --logo-gap: clamp(24px, 1.8vw, 36px);
   overflow: hidden;
-  width: 100%;
+  width: min(100%, clamp(632px, 46.2vw, 892px));
   margin: clamp(146px, 8.95vw, 172px) auto 0;
   -webkit-mask-image: linear-gradient(
     90deg,
@@ -717,7 +717,7 @@ h1 em {
   display: grid;
   position: relative;
   flex: 0 0 auto;
-  width: clamp(174px, 13.14vw, 252px);
+  width: clamp(140px, 10.2vw, 196px);
   aspect-ratio: 1;
   place-items: center;
   background: transparent;
@@ -862,6 +862,14 @@ h1 em {
 
   .about-orbits {
     align-content: center;
+  }
+}
+
+@media (min-width: 1041px) {
+  .about {
+    min-height: clamp(700px, 42vw, 800px);
+    padding-top: clamp(96px, 6.8vw, 130px);
+    padding-bottom: clamp(92px, 6.2vw, 118px);
   }
 }
 
@@ -1084,12 +1092,13 @@ h1 em {
   }
 
   .logo-row {
-    --logo-gap: 26px;
+    --logo-gap: 22px;
+    width: min(100%, clamp(538px, calc(60vw + 66px), 626px));
     margin-top: 78px;
   }
 
   .logo-set span {
-    width: clamp(150px, 19vw, 190px);
+    width: clamp(118px, 15vw, 140px);
   }
 
   .contact {
