@@ -67,9 +67,7 @@
   --white: #fffaf7;
   --text: #3d2e54;
   --shadow: 0 24px 60px rgba(115, 74, 132, 0.18);
-  --page-shell-width: calc(100vw - 34px);
   --section-content-edge: clamp(72px, 8.55vw, 164px);
-  --site-header-height: clamp(122px, 8vw, 154px);
 }
 
 * {
@@ -103,14 +101,13 @@ a {
 }
 
 .site-header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: clamp(32px, 4vw, 68px);
-  height: var(--site-header-height);
+  height: clamp(122px, 8vw, 154px);
   padding: clamp(20px, 1.55vw, 30px) clamp(34px, 2.65vw, 52px);
 }
 
@@ -134,7 +131,7 @@ a {
   min-width: 0;
   font-family: var(--site-font);
   font-size: clamp(17px, 1.15vw, 22px);
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -164,11 +161,11 @@ main::after {
 }
 
 main::before {
-  left: 42px;
+  left: 29px;
 }
 
 main::after {
-  right: 42px;
+  right: 29px;
 }
 
 section {
@@ -188,7 +185,7 @@ section {
 
 .hero {
   display: block;
-  width: var(--page-shell-width);
+  width: calc(100vw - 34px);
   height: max(680px, calc(74vw - 25px));
   aspect-ratio: 1415 / 1047;
   margin-inline: auto;
@@ -261,7 +258,7 @@ h1 em {
 .about {
   grid-template-columns: minmax(0, 1fr) minmax(560px, 0.82fr);
   align-items: start;
-  width: var(--page-shell-width);
+  width: calc(100vw - 34px);
   min-height: 930px;
   margin-inline: auto;
   padding: clamp(210px, 12.8vw, 246px) var(--section-content-edge) 120px;
@@ -350,7 +347,7 @@ h1 em {
 }
 
 .focus {
-  width: var(--page-shell-width);
+  width: calc(100vw - 34px);
   min-height: clamp(780px, 60.7vw, 932px);
   margin-inline: auto;
   padding-inline: var(--section-content-edge);
@@ -365,8 +362,7 @@ h1 em {
 
 .focus .section-kicker {
   font-family: var(--site-font);
-  font-size: clamp(48px, 4vw, 76px);
-  font-weight: 700;
+  font-size: clamp(46px, 4.05vw, 62px);
   line-height: 1;
 }
 
@@ -385,16 +381,11 @@ h1 em {
 }
 
 .photo {
-  position: relative;
   width: clamp(260px, 23.2vw, 356px);
   aspect-ratio: 1;
   overflow: hidden;
   border-radius: 50%;
   background: var(--lavender);
-  transition:
-    box-shadow 280ms ease,
-    transform 280ms ease;
-  will-change: transform;
 }
 
 .photo img {
@@ -402,23 +393,6 @@ h1 em {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transform-origin: 50% 58%;
-  transition:
-    filter 280ms ease,
-    transform 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  will-change: transform;
-}
-
-.focus-card:hover .photo,
-.focus-card:focus-within .photo {
-  transform: translateY(-10px) scale(1.03);
-  box-shadow: 0 22px 44px rgba(118, 100, 200, 0.2);
-}
-
-.focus-card:hover .photo img,
-.focus-card:focus-within .photo img {
-  filter: saturate(1.08) contrast(1.03);
-  transform: translateY(-8px) rotate(1deg) scale(1.08);
 }
 
 .focus-card h3 {
@@ -446,10 +420,10 @@ h1 em {
 
 .work {
   position: sticky;
-  top: var(--site-header-height);
+  top: 0;
   display: grid;
   width: calc(100vw - 34px);
-  height: calc(100svh - var(--site-header-height));
+  height: 100svh;
   min-height: 0;
   align-items: center;
   justify-items: center;
@@ -584,7 +558,7 @@ h1 em {
 }
 
 .council {
-  width: var(--page-shell-width);
+  width: calc(100vw - 34px);
   min-height: clamp(760px, 47.85vw, 918px);
   margin-inline: auto;
   padding-inline: var(--section-content-edge);
@@ -596,9 +570,9 @@ h1 em {
 .council .section-kicker,
 .contact .section-kicker {
   font-family: var(--site-font);
-  font-size: clamp(48px, 4vw, 76px);
+  font-size: 60px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 64px;
 }
 
 .logo-row {
@@ -628,6 +602,10 @@ h1 em {
   gap: var(--logo-gap);
   animation: logo-scroll 24s linear infinite;
   will-change: transform;
+}
+
+.logo-row:hover .logo-track {
+  animation-play-state: paused;
 }
 
 .logo-set {
@@ -667,12 +645,6 @@ h1 em {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .photo,
-  .photo img {
-    transition: none;
-    animation: none;
-  }
-
   .logo-track {
     animation: none;
   }
@@ -682,11 +654,11 @@ h1 em {
   display: grid;
   grid-template-columns: minmax(300px, 560px) minmax(420px, 1fr);
   gap: clamp(60px, 5vw, 96px);
-  width: var(--page-shell-width);
+  width: calc(100vw - 34px);
   min-height: clamp(325px, 30.45vw, 585px);
   margin-inline: auto;
   align-items: center;
-  padding: clamp(118px, 12.9vw, 248px) var(--section-content-edge)
+  padding: clamp(118px, 12.9vw, 248px) clamp(72px, 12.25vw, 235px)
     clamp(92px, 8.8vw, 170px);
   background: var(--cyan);
 }
@@ -696,11 +668,11 @@ h1 em {
 }
 
 .contact a {
-  justify-self: end;
-  font-family: var(--site-font);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 64px;
+  justify-self: start;
+  font-family: var(--body-font);
+  font-size: clamp(20px, 1.62vw, 31px);
+  font-weight: 900;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
@@ -734,10 +706,6 @@ h1 em {
   line-height: 30px;
 }
 
-.site-footer strong {
-  font-weight: 600;
-}
-
 .footer-right {
   justify-items: end;
   text-align: right;
@@ -751,10 +719,6 @@ h1 em {
 }
 
 @media (min-width: 760px) {
-  :root {
-    --page-shell-width: calc(100vw - 58px);
-  }
-
   .section-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -809,66 +773,28 @@ h1 em {
 
 @media (max-width: 759px) {
   .site-header {
-    height: auto;
-    min-height: 98px;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
-    padding: 18px 24px 20px;
-  }
-
-  .brand-logo {
-    width: clamp(166px, 49vw, 198px);
   }
 
   .nav-links {
     display: none;
   }
 
-  main::before,
-  main::after {
-    top: 18px;
-    bottom: 18px;
-    width: 7px;
-    background-size: 7px 105px;
-  }
-
-  main::before {
-    left: 24px;
-  }
-
-  main::after {
-    right: 24px;
-  }
-
   section {
-    padding-inline: clamp(24px, 7vw, 30px);
-  }
-
-  main > section + section {
-    margin-top: -1px;
+    padding-inline: 34px;
   }
 
   .about {
     grid-template-columns: 1fr;
     min-height: auto;
-    padding: 0px clamp(24px, 7vw, 30px) 78px;
+    padding: 90px 34px;
   }
 
   .focus,
   .council,
   .contact {
-    padding-inline: clamp(24px, 7vw, 30px);
-  }
-
-  .about-copy h2 {
-    font-size: clamp(40px, 11.2vw, 50px);
-    line-height: 1.02;
-  }
-
-  .about-copy p {
-    margin-top: 28px;
-    font-size: 17px;
-    line-height: 26px;
+    padding-inline: 34px;
   }
 
   .about-copy {
@@ -876,120 +802,79 @@ h1 em {
   }
 
   .about-orbits {
-    width: min(100%, calc(100vw - 96px), 360px);
-    margin-top: 46px;
-    padding-top: 0;
+    width: min(100%, 360px);
+    margin-top: 48px;
+    padding-top: 12px;
   }
 
   .about-orbits article {
-    height: 186px;
-    padding: 34px 34px 30px;
-    align-content: start;
+    height: 180px;
+    padding: 28px 38px;
   }
 
   .about-orbits article:last-child {
-    margin-top: -18px;
-    padding-top: 44px;
-  }
-
-  .about-orbits h3 {
-    font-size: clamp(34px, 9.8vw, 42px);
-  }
-
-  .about-orbits p {
-    width: min(100%, 236px);
-    max-width: 236px;
-    margin-top: 10px;
-    font-size: 15px;
-    line-height: 1.18;
-  }
-
-  .focus {
-    padding-top: 68px;
-    padding-bottom: 76px;
-  }
-
-  .focus .section-kicker {
-    font-size: clamp(40px, 11.2vw, 50px);
-    line-height: 1.02;
-  }
-
-  .photo {
-    width: min(100%, 232px);
+    margin-top: -28px;
   }
 
   .council {
-    padding-top: 74px;
-    padding-bottom: 76px;
+    padding-top: 92px;
+    padding-bottom: 96px;
   }
 
   .council .section-kicker,
   .contact .section-kicker {
-    font-size: clamp(40px, 11.2vw, 50px);
-    line-height: 1.02;
+    font-size: clamp(42px, 13vw, 60px);
+    line-height: 1.06;
   }
 
   .logo-row {
-    --logo-gap: 18px;
-    margin-top: 44px;
+    --logo-gap: 28px;
+    margin-top: 62px;
   }
 
   .logo-set span {
-    width: 132px;
+    width: min(100%, 174px);
   }
 
   .hero {
     aspect-ratio: auto;
-    height: clamp(780px, 218vw, 840px);
-    min-height: 0;
+    min-height: 700px;
     overflow: hidden;
   }
 
   .hero-copy {
-    position: absolute;
-    top: clamp(228px, 66vw, 258px);
-    left: clamp(36px, 11vw, 52px);
-    right: auto;
+    position: relative;
+    top: auto;
+    left: auto;
     width: auto;
-    max-width: min(220px, calc(100vw - 82px));
-    padding: 0;
+    max-width: 320px;
+    padding-top: 210px;
+    padding-left: 70px;
+    padding-right: 24px;
   }
 
   .hero h1 {
     width: auto;
-    max-width: min(220px, calc(100vw - 82px));
+    max-width: 280px;
     min-height: 0;
-    font-size: 24px;
-    line-height: 1.06;
+    font-size: clamp(30px, 8.5vw, 36px);
+    line-height: 1.08;
   }
 
   .hero-art img {
-    left: 47%;
-    width: clamp(793px, 288vw, 994px);
+    left: 50%;
+    width: max(720px, 184vw);
     max-width: none;
-    transform: translateX(-49%);
+    transform: translateX(-50%);
   }
 
   .focus-list {
     grid-template-columns: 1fr;
-    gap: 42px;
+    gap: 54px;
   }
 
   .focus-card h3 {
-    max-width: min(100%, 300px);
-    margin-top: 24px;
-    font-size: 22px;
-    line-height: 1.16;
-    text-wrap: balance;
-    overflow-wrap: break-word;
-  }
-
-  .focus-card p {
-    max-width: min(100%, 300px);
-    margin-top: 16px;
-    font-size: 17px;
-    line-height: 26px;
-    overflow-wrap: break-word;
+    margin-top: 26px;
   }
 
   .work-scroll {
@@ -1040,63 +925,33 @@ h1 em {
 
   .logo-row {
     width: 100%;
-    margin-top: 44px;
+    margin-top: 64px;
   }
 
   .contact {
     gap: 22px;
-    min-height: 250px;
-    padding: 68px clamp(24px, 7vw, 30px) 66px;
-  }
-
-  .contact a {
-    font-size: clamp(13px, 3.65vw, 16px);
-    line-height: 1.4;
+    padding-inline: 34px;
   }
 
   .site-footer {
-    align-items: center;
+    align-items: flex-start;
     flex-direction: column;
-    gap: 34px;
-    min-height: auto;
-    padding: 58px 34px 48px;
-  }
-
-  .footer-logo {
-    width: min(100%, 190px);
-  }
-
-  .footer-left {
-    order: 2;
-    justify-items: center;
-    text-align: center;
   }
 
   .footer-right {
-    order: 1;
-    justify-items: center;
-    text-align: center;
+    justify-items: start;
+    text-align: left;
   }
-
-  .koan-wordmark {
-    width: 156px;
-  }
-
-  .site-footer p {
-    font-size: 15px;
-    line-height: 30px;
-  }
-
 }
 
 @media (max-width: 440px) {
   .site-header,
   .site-footer {
-    padding-inline: 18px;
+    padding-inline: 14px;
   }
 
   .brand-logo {
-    width: clamp(164px, 49vw, 190px);
+    width: 136px;
   }
 
   .nav-links {
@@ -1104,43 +959,12 @@ h1 em {
   }
 
   .hero {
-    height: clamp(780px, 218vw, 780px);
+    min-height: 670px;
   }
-
-  .about,
-  .focus,
-  .council,
-  .contact {
-    padding-inline: 24px;
-  }
-
-  .about-orbits article {
-    height: 176px;
-    padding-inline: 26px;
-  }
-
-  .about-orbits {
-    width: min(100%, calc(100vw - 72px));
-  }
-
-  .about-orbits article:last-child {
-    padding-top: 40px;
-  }
-
 }
 
 @media (max-width: 360px) {
   .nav-links {
     display: none;
   }
-
-  .hero-copy {
-    top: 242px;
-    left: 38px;
-  }
-
-  .hero h1 {
-    font-size: 24px;
-  }
-
 }
