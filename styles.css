@@ -440,6 +440,7 @@ h1 em {
 
 .work-scroll {
   height: 175svh;
+  scroll-margin-top: var(--site-header-height);
   padding-inline: 0;
   background: var(--magenta);
 }
@@ -448,7 +449,7 @@ h1 em {
   position: sticky;
   top: var(--site-header-height);
   display: grid;
-  width: calc(100vw - 34px);
+  width: var(--page-shell-width);
   height: calc(100svh - var(--site-header-height));
   min-height: 0;
   align-items: center;

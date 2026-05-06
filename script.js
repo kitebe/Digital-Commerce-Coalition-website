@@ -58,10 +58,16 @@ if (workBubbles.length === 4) {
     if (!workScroll || !workSection || stackedDial.matches) return 0;
 
     const rect = workScroll.getBoundingClientRect();
+    const stickyTop = Number.parseFloat(window.getComputedStyle(workSection).top) || 0;
     const scrollDistance = workSection.getBoundingClientRect().height * 0.75;
-    const progress = Math.min(1, Math.max(0, -rect.top / scrollDistance));
+    const progress = Math.min(1, Math.max(0, (stickyTop - rect.top) / scrollDistance));
 
-    return Math.min(workBubbles.length - 1, Math.floor(progress * workBubbles.length));
+    if (progress <= 0.005) return 0;
+
+    return Math.min(
+      workBubbles.length - 1,
+      Math.ceil(progress * (workBubbles.length - 1)),
+    );
   };
 
   const renderDial = () => {
