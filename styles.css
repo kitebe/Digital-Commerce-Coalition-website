@@ -1342,7 +1342,7 @@ h1 em {
     min-height: 64px;
     max-width: 292.58px;
     margin-inline: auto;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 700;
     line-height: 64px;
     white-space: nowrap;
@@ -1419,7 +1419,7 @@ margin-top: 50px;
     width: min(100%, 292.58px);
     min-height: 64px;
     margin-inline: auto;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 700;
     line-height: 64px;
     white-space: nowrap;
@@ -1461,7 +1461,7 @@ margin-top: 50px;
     margin-top: clamp(42px, 11vw, 66px);
     color: var(--magenta);
     font-family: var(--site-font);
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 700;
     line-height: 1.18;
   }
@@ -1481,8 +1481,10 @@ margin-top: 50px;
 
   .council .section-kicker,
   .contact .section-kicker {
-    font-size: clamp(40px, 11.2vw, 50px);
-    line-height: 1.02;
+    font-family: var(--site-font);
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 64px;
   }
 
   .logo-row {
@@ -1624,7 +1626,7 @@ margin-top: 50px;
   }
 
   .contact a {
-    font-size: clamp(11px, 3.65vw, 16px);
+    font-size: 14px;
     line-height: 1.4;
   }
 
