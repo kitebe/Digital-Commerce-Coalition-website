@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=20260507-desktop-section-gap" />
+    <link rel="stylesheet" href="./styles.css?v=20260509-diamond-single-rail" />
   </head>
   <body>
     <header class="site-header" aria-label="Main navigation">
@@ -24,15 +24,20 @@
       </a>
 
       <nav class="nav-links" aria-label="Sections">
-        <a href="#about">About</a>
-        <a href="#focus">Focus Areas</a>
-        <a href="#work">How We Work</a>
-        <a href="#council">Members</a>
-        <a href="#contact">Contact</a>
+        <a href="#about" data-label="About">About</a>
+        <a href="#focus" data-label="Focus Areas">Focus Areas</a>
+        <a href="#work" data-label="How We Work">How We Work</a>
+        <a href="#council" data-label="Members">Members</a>
+        <a href="#contact" data-label="Contact">Contact</a>
       </nav>
     </header>
 
     <main id="top">
+      <div class="diamond-rails" aria-hidden="true">
+        <span></span>
+        <span></span>
+      </div>
+
       <section class="hero section-grid" aria-labelledby="hero-title">
         <div class="hero-copy">
           <h1 id="hero-title">
@@ -196,6 +201,6 @@
         <p>Secretariat managed by <strong>Koan Advisory Group</strong></p>
       </div>
     </footer>
-    <script src="./script.js?v=20260506-footer-text"></script>
+    <script src="./script.js?v=20260509-diamond-single-rail"></script>
   </body>
 </html>

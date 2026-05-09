@@ -13,8 +13,28 @@ if (workBubbles.length === 4) {
   const stackedDial = window.matchMedia("(max-width: 759px)");
   const workScroll = document.querySelector(".work-scroll");
   const workSection = document.querySelector(".work");
+  const diamondRails = document.querySelector(".diamond-rails");
   let activeIndex = -1;
   let frame = null;
+
+  const syncDiamondRails = () => {
+    if (!diamondRails || !workScroll || !workSection || stackedDial.matches) {
+      diamondRails?.style.removeProperty("transform");
+      return;
+    }
+
+    const stickyTop =
+      Number.parseFloat(window.getComputedStyle(workSection).top) || 0;
+    const rawOffset = stickyTop - workScroll.getBoundingClientRect().top;
+    const maxOffset = Math.max(
+      0,
+      workScroll.getBoundingClientRect().height -
+        workSection.getBoundingClientRect().height,
+    );
+    const railOffset = Math.min(maxOffset, Math.max(0, rawOffset));
+
+    diamondRails.style.transform = `translateY(${railOffset.toFixed(3)}px)`;
+  };
 
   const getSlot = (index, currentIndex) => {
     const offset = (index - currentIndex + workBubbles.length) % workBubbles.length;
@@ -114,14 +134,24 @@ if (workBubbles.length === 4) {
     if (frame) return;
     frame = window.requestAnimationFrame(() => {
       frame = null;
+      syncDiamondRails();
       renderDial();
     });
   };
 
+  syncDiamondRails();
   renderDial();
   window.addEventListener("scroll", scheduleRender, { passive: true });
-  window.addEventListener("resize", scheduleRender);
-  stackedDial.addEventListener("change", scheduleRender);
+  window.addEventListener("resize", () => {
+    syncDiamondRails();
+    scheduleRender();
+  });
+  window.addEventListener("load", syncDiamondRails);
+  document.fonts?.ready?.then(syncDiamondRails);
+  stackedDial.addEventListener("change", () => {
+    syncDiamondRails();
+    scheduleRender();
+  });
 }
 
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
