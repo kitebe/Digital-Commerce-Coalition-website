@@ -16,29 +16,44 @@ if (workBubbles.length === 4) {
   const diamondRails = document.querySelector(".diamond-rails");
   let activeIndex = -1;
   let frame = null;
-  let currentRailOffset = null;
+  let railsPinned = false;
 
   const syncDiamondRails = () => {
     if (!diamondRails || !workScroll || !workSection || stackedDial.matches) {
-      diamondRails?.style.removeProperty("transform");
-      currentRailOffset = null;
+      diamondRails?.classList.remove("is-pinned");
+      railsPinned = false;
       return;
     }
 
+    const rootStyles = window.getComputedStyle(document.documentElement);
+    const diamondGap =
+      Number.parseFloat(rootStyles.getPropertyValue("--diamond-gap")) || 0;
     const stickyTop =
       Number.parseFloat(window.getComputedStyle(workSection).top) || 0;
-    const rawOffset = stickyTop - workScroll.getBoundingClientRect().top;
+    const workRect = workScroll.getBoundingClientRect();
+    const rawOffset = stickyTop - workRect.top;
     const maxOffset = Math.max(
       0,
-      workScroll.getBoundingClientRect().height -
+      workRect.height -
         workSection.getBoundingClientRect().height,
     );
-    const railOffset = Math.round(Math.min(maxOffset, Math.max(0, rawOffset)));
+    const shouldPin = rawOffset > 0 && rawOffset < maxOffset;
 
-    if (railOffset === currentRailOffset) return;
+    if (diamondGap > 0 && !railsPinned && shouldPin) {
+      const mainTop = diamondRails.parentElement.getBoundingClientRect().top;
+      const phase =
+        ((((mainTop + 22 - stickyTop) % diamondGap) + diamondGap) % diamondGap);
 
-    currentRailOffset = railOffset;
-    diamondRails.style.transform = `translate3d(0, ${railOffset}px, 0)`;
+      diamondRails.style.setProperty(
+        "--pinned-diamond-phase",
+        `${Number(phase.toFixed(3))}px`,
+      );
+    }
+
+    if (shouldPin === railsPinned) return;
+
+    railsPinned = shouldPin;
+    diamondRails.classList.toggle("is-pinned", shouldPin);
   };
 
   const getSlot = (index, currentIndex) => {

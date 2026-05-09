@@ -204,7 +204,12 @@ main {
   left: 0;
   z-index: 12;
   pointer-events: none;
-  will-change: transform;
+}
+
+.diamond-rails.is-pinned {
+  position: fixed;
+  top: var(--site-header-height);
+  bottom: 0;
 }
 
 .diamond-rails span {
@@ -217,6 +222,10 @@ main {
   background-size: var(--diamond-size) var(--diamond-gap);
   background-repeat: repeat-y;
   opacity: 0.9;
+}
+
+.diamond-rails.is-pinned span {
+  background-position-y: var(--pinned-diamond-phase, 22px);
 }
 
 .diamond-rails span:first-child {
