@@ -16,10 +16,12 @@ if (workBubbles.length === 4) {
   const diamondRails = document.querySelector(".diamond-rails");
   let activeIndex = -1;
   let frame = null;
+  let currentRailOffset = null;
 
   const syncDiamondRails = () => {
     if (!diamondRails || !workScroll || !workSection || stackedDial.matches) {
       diamondRails?.style.removeProperty("transform");
+      currentRailOffset = null;
       return;
     }
 
@@ -31,9 +33,12 @@ if (workBubbles.length === 4) {
       workScroll.getBoundingClientRect().height -
         workSection.getBoundingClientRect().height,
     );
-    const railOffset = Math.min(maxOffset, Math.max(0, rawOffset));
+    const railOffset = Math.round(Math.min(maxOffset, Math.max(0, rawOffset)));
 
-    diamondRails.style.transform = `translateY(${railOffset.toFixed(3)}px)`;
+    if (railOffset === currentRailOffset) return;
+
+    currentRailOffset = railOffset;
+    diamondRails.style.transform = `translate3d(0, ${railOffset}px, 0)`;
   };
 
   const getSlot = (index, currentIndex) => {
