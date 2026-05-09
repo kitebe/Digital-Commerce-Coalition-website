@@ -67,7 +67,7 @@
   --white: #fffaf7;
   --text: #3d2e54;
   --shadow: 0 24px 60px rgba(115, 74, 132, 0.18);
-  --page-shell-width: calc(100vw - 34px);
+  --page-shell-width: calc(100vw - 10px);
   --section-content-edge: clamp(72px, 8.55vw, 164px);
   --site-header-height: clamp(122px, 8vw, 154px);
   --diamond-size: 14px;
@@ -117,7 +117,6 @@ a {
   gap: clamp(32px, 4vw, 68px);
   height: var(--site-header-height);
   padding: clamp(20px, 1.55vw, 30px) clamp(34px, 2.65vw, 52px);
-  animation: header-enter 700ms var(--motion-ease) both;
 }
 
 .brand {
@@ -350,18 +349,6 @@ h1 em {
 .text-reveal.is-visible .reveal-word {
   opacity: 1;
   transform: none;
-}
-
-@keyframes header-enter {
-  from {
-    opacity: 0;
-    transform: translateY(-24px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .hero-art {
@@ -787,10 +774,6 @@ h1 em {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .site-header {
-    animation: none;
-  }
-
   .reveal,
   .hero-art.reveal,
   .about-orbits article.reveal,
@@ -895,7 +878,7 @@ h1 em {
 
 @media (min-width: 760px) {
   :root {
-    --page-shell-width: calc(100vw - 58px);
+    --page-shell-width: calc(100vw - 32px);
   }
 
   .section-grid {
