@@ -298,4 +298,32 @@ const setupRevealAnimations = () => {
   animatedTargets.forEach((element) => revealObserver.observe(element));
 };
 
+const setupMobileMenu = () => {
+  const header = document.querySelector(".site-header");
+  const toggle = document.querySelector(".menu-toggle");
+  const menu = document.querySelector(".mobile-menu");
+
+  if (!header || !toggle || !menu) return;
+
+  const setOpen = (isOpen) => {
+    header.classList.toggle("is-menu-open", isOpen);
+    document.body.classList.toggle("is-menu-open", isOpen);
+    toggle.setAttribute("aria-expanded", String(isOpen));
+    toggle.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+  };
+
+  toggle.addEventListener("click", () => {
+    setOpen(!header.classList.contains("is-menu-open"));
+  });
+
+  menu.addEventListener("click", (event) => {
+    if (event.target.closest("a")) setOpen(false);
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setOpen(false);
+  });
+};
+
 setupRevealAnimations();
+setupMobileMenu();

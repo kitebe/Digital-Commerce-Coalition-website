@@ -85,6 +85,12 @@ html {
   scroll-behavior: smooth;
   overflow-x: hidden;
   overflow-x: clip;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 body {
@@ -94,6 +100,7 @@ body {
   font-family: var(--site-font);
   overflow-x: hidden;
   overflow-x: clip;
+  -ms-overflow-style: none;
 }
 
 a {
@@ -188,6 +195,11 @@ a {
 .nav-links a:hover::after,
 .nav-links a:focus-visible::after {
   opacity: 1;
+}
+
+.menu-toggle,
+.mobile-menu {
+  display: none;
 }
 
 main {
@@ -1159,26 +1171,140 @@ h1 em {
 
 @media (max-width: 759px) {
   :root {
-    --site-header-height: 98px;
+    --site-header-height: clamp(104px, 26.44vw, 147px);
+    --mobile-footer-height: clamp(132px, 34.8vw, 172px);
     --diamond-size: 9px;
     --diamond-gap: 105px;
     --diamond-rail-inset: 24px;
   }
 
+  body {
+    padding-bottom: var(--mobile-footer-height);
+  }
+
+  body.is-menu-open {
+    overflow: hidden;
+  }
+
+  body.is-menu-open .site-header {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 60;
+  }
+
   .site-header {
-    height: auto;
-    min-height: 98px;
-    align-items: center;
+    height: var(--site-header-height);
+    min-height: 0;
+    align-items: flex-start;
     gap: 10px;
-    padding: 18px 24px 20px;
+    padding: clamp(21px, 5.4vw, 30px) clamp(28px, 5.4vw, 30px) 0;
   }
 
   .brand-logo {
-    width: clamp(166px, 49vw, 198px);
+    width: clamp(158px, 35.6vw, 198px);
   }
 
   .nav-links {
     display: none;
+  }
+
+  .menu-toggle {
+    --menu-bar-width: clamp(27px, 6.8vw, 38px);
+    --menu-bar-height: clamp(4px, 0.9vw, 5px);
+    --menu-open-shift: clamp(8.5px, 2.15vw, 12px);
+    position: absolute;
+    top: 50%;
+    right: clamp(25px, 6.5vw, 36px);
+    z-index: 32;
+    display: inline-flex;
+    flex-direction: column;
+    width: var(--menu-bar-width);
+    height: clamp(21px, 5.2vw, 29px);
+    padding: 0;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: translateY(-50%);
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: var(--menu-bar-width);
+    height: var(--menu-bar-height);
+    border-radius: 999px;
+    background: var(--white);
+    transition:
+      opacity 180ms var(--motion-ease),
+      transform 220ms var(--motion-ease);
+  }
+
+  .site-header.is-menu-open .menu-toggle span:first-child {
+    transform: translateY(var(--menu-open-shift)) rotate(45deg);
+  }
+
+  .site-header.is-menu-open .menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .site-header.is-menu-open .menu-toggle span:last-child {
+    transform: translateY(calc(-1 * var(--menu-open-shift))) rotate(-45deg);
+  }
+
+  .mobile-menu {
+    position: fixed;
+    top: var(--site-header-height);
+    right: 0;
+    bottom: var(--mobile-footer-height);
+    left: 0;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: clamp(58px, 15.4vw, 120px) clamp(32px, 8vw, 68px)
+      clamp(26px, 6vw, 42px);
+    color: var(--white);
+    background: var(--magenta);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition:
+      opacity 180ms var(--motion-ease),
+      transform 220ms var(--motion-ease);
+  }
+
+  .site-header.is-menu-open .mobile-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .mobile-menu a {
+    display: block;
+    width: 175px;
+    height: 64px;
+    padding: 0;
+    color: var(--white);
+    font-family: var(--site-font);
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 64px;
+    overflow: visible;
+    white-space: nowrap;
+  }
+
+  .mobile-menu a + a {
+    margin-top: -8px;
+  }
+
+  .mobile-menu-copy {
+    margin-top: auto;
+    color: rgba(255, 250, 247, 0.72);
+    font-size: clamp(15px, 3.8vw, 22px);
+    line-height: 1.25;
   }
 
   section {
@@ -1410,49 +1536,69 @@ h1 em {
   }
 
   .site-footer {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
     align-items: center;
-    flex-direction: column;
-    gap: 24px;
-    min-height: auto;
-    padding: 44px 34px 38px;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 16px;
+    height: var(--mobile-footer-height);
+    min-height: 0;
+    padding: clamp(22px, 5.6vw, 34px) clamp(24px, 6.2vw, 54px)
+      clamp(22px, 5.5vw, 32px);
   }
 
-  .footer-logo {
-    width: min(100%, 150px);
+  .site-footer > div,
+  .site-footer > div.reveal {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  .site-footer .footer-logo {
+    width: clamp(112px, 28vw, 142px);
   }
 
   .footer-left {
-    order: 2;
-    justify-items: center;
-    text-align: center;
+    order: 1;
+    max-width: 46%;
+    justify-items: start;
+    text-align: left;
   }
 
   .footer-right {
-    order: 1;
-    justify-items: center;
-    text-align: center;
+    order: 2;
+    max-width: 44%;
+    justify-items: end;
+    text-align: right;
   }
 
   .koan-wordmark {
-    width: 124px;
+    width: clamp(92px, 25vw, 120px);
   }
 
   .site-footer p {
-    max-width: 300px;
-    font-size: 13px;
-    line-height: 24px;
+    max-width: 154px;
+    font-size: 9px;
+    line-height: 1.28;
   }
 
 }
 
 @media (max-width: 440px) {
-  .site-header,
   .site-footer {
     padding-inline: 18px;
   }
 
-  .brand-logo {
-    width: clamp(164px, 49vw, 190px);
+  .site-header {
+    padding-inline: clamp(21px, 5.4vw, 30px);
+  }
+
+  .site-header .brand-logo {
+    width: clamp(158px, 35.6vw, 198px);
   }
 
   .nav-links {
