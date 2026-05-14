@@ -884,6 +884,7 @@ h1 em {
 .footer-right {
   justify-items: end;
   text-align: right;
+  margin-top: 12px;
 }
 
 .koan-link {
