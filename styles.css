@@ -886,6 +886,13 @@ h1 em {
   text-align: right;
 }
 
+.koan-link {
+  display: inline-grid;
+  justify-items: end;
+  gap: 8px;
+  text-align: right;
+}
+
 .koan-wordmark {
   display: block;
   width: 194px;
