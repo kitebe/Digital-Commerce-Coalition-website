@@ -887,7 +887,8 @@ h1 em {
 }
 
 .koan-link {
-  display: inline-grid;
+  display: grid;
+  width: 100%;
   justify-items: end;
   gap: 8px;
   text-align: right;
