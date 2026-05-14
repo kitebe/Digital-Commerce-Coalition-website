@@ -1184,7 +1184,6 @@ h1 em {
   }
 
   body {
-    padding-bottom: var(--mobile-footer-height);
   }
 
   body.is-menu-open {
@@ -1631,17 +1630,11 @@ margin-top: 50px;
   }
 
   .site-footer {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 50;
     align-items: center;
     flex-direction: row;
     justify-content: space-between;
     gap: 16px;
-    height: var(--mobile-footer-height);
-    min-height: 0;
+    min-height: auto;
     padding: clamp(22px, 5.6vw, 34px) clamp(24px, 6.2vw, 54px)
       clamp(22px, 5.5vw, 32px);
   }
