@@ -325,5 +325,33 @@ const setupMobileMenu = () => {
   });
 };
 
+const setupHeroVideo = () => {
+  const desktopHero = window.matchMedia("(min-width: 760px)");
+  const video = document.querySelector(".hero-art video");
+  const source = video?.querySelector("source[data-src]");
+
+  if (!video || !source) return;
+
+  const syncHeroMedia = () => {
+    if (desktopHero.matches) {
+      if (!source.getAttribute("src")) {
+        source.setAttribute("src", source.dataset.src);
+        video.load();
+      }
+
+      video.play().catch(() => {});
+      return;
+    }
+
+    video.pause();
+    source.removeAttribute("src");
+    video.load();
+  };
+
+  syncHeroMedia();
+  desktopHero.addEventListener("change", syncHeroMedia);
+};
+
+setupHeroVideo();
 setupRevealAnimations();
 setupMobileMenu();
