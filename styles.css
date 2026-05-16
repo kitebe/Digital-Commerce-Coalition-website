@@ -60,10 +60,10 @@
   --cyan: #bcfaff;
   --cyan-deep: #7be1df;
   --magenta: #CD234F;
-  --magenta-dark: #b80f42;
+  --magenta-dark: #CD234F;
   --lavender: #BAD6FE;
   --violet: #7664c8;
-  --ink: #cf1550;
+  --ink: #CD234F;
   --white: #fffaf7;
   --text: #3d2e54;
   --shadow: 0 24px 60px rgba(115, 74, 132, 0.18);
@@ -269,8 +269,9 @@ main > section + section {
 .hero {
   display: block;
   width: var(--page-shell-width);
-  height: max(680px, calc(74vw - 25px));
-  aspect-ratio: 1415 / 1047;
+  height: auto;
+  aspect-ratio: 1366 / 768;
+  min-height: 0;
   margin-inline: auto;
   padding-inline: 0;
   padding-top: 0;
@@ -374,13 +375,15 @@ h1 em {
   pointer-events: none;
 }
 
-.hero-art img {
+.hero-art img,
+.hero-art video {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   max-width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
 }
 
 .about {
@@ -1003,7 +1006,8 @@ h1 em {
     line-height: 1.06;
   }
 
-  .hero-art img {
+  .hero-art img,
+  .hero-art video {
     left: 50%;
     width: clamp(980px, 138vw, 1280px);
     max-width: none;
@@ -1521,7 +1525,8 @@ margin-top: 50px;
     line-height: 1.06;
   }
 
-  .hero-art img {
+  .hero-art img,
+  .hero-art video {
     left: 47%;
     width: clamp(793px, 288vw, 994px);
     max-width: none;
