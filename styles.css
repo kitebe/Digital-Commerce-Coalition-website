@@ -343,12 +343,12 @@ h1 em {
   transform: none;
 }
 
-.about-orbits article.reveal,
+.about-visual.reveal,
 .focus-card.reveal {
   transform: translateY(38px) scale(0.96);
 }
 
-.about-orbits article.reveal.is-visible,
+.about-visual.reveal.is-visible,
 .focus-card.reveal.is-visible {
   transform: none;
 }
@@ -375,8 +375,7 @@ h1 em {
   pointer-events: none;
 }
 
-.hero-art img,
-.hero-art video {
+.hero-art img {
   position: absolute;
   top: 0;
   left: 0;
@@ -384,6 +383,10 @@ h1 em {
   max-width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.hero-art .hero-illustration {
+  object-fit: cover;
 }
 
 .hero-phone-art {
@@ -434,51 +437,17 @@ h1 em {
   margin-top: clamp(44px, 3.6vw, 68px);
 }
 
-.about-orbits {
-  display: grid;
-  justify-items: center;
+.about-visual {
+  display: block;
   align-self: center;
   justify-self: end;
-  width: min(100%, 608px);
-  padding-top: 0;
+  width: clamp(430px, 38vw, 580px);
 }
 
-.about-orbits article {
-  display: grid;
+.about-visual img {
+  display: block;
   width: 100%;
-  height: 302px;
-  align-content: center;
-  justify-items: center;
-  padding: 44px 88px;
-  text-align: center;
-  border: 1.5px solid var(--magenta);
-}
-
-.about-orbits article:first-child {
-  border-radius: 0 0 999px 999px;
-}
-
-.about-orbits article:last-child {
-  margin-top: -47px;
-  border-radius: 999px 999px 0 0;
-}
-
-.about-orbits h3 {
-  color: var(--magenta);
-  font-family: var(--site-font);
-  font-size: clamp(48px, 3.42vw, 66px);
-  font-weight: 700;
-  line-height: 1;
-  text-transform: uppercase;
-}
-
-.about-orbits p {
-  max-width: 410px;
-  margin-top: 24px;
-  color: var(--magenta);
-  font-size: 20px;
-  font-weight: 400;
-  line-height: 1.25;
+  height: auto;
 }
 
 .focus {
@@ -800,7 +769,7 @@ h1 em {
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .hero-art.reveal,
-  .about-orbits article.reveal,
+  .about-visual.reveal,
   .focus-card.reveal,
   .text-reveal .reveal-word {
     opacity: 1;
@@ -919,11 +888,11 @@ h1 em {
   }
 
   .about {
-    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr);
+    grid-template-columns: minmax(0, 0.9fr) minmax(520px, 1.1fr);
   }
 
-  .about-orbits {
-    align-content: center;
+  .about-visual {
+    align-self: center;
   }
 }
 
@@ -932,6 +901,28 @@ h1 em {
     min-height: clamp(700px, 42vw, 800px);
     padding-top: clamp(96px, 6.8vw, 130px);
     padding-bottom: clamp(92px, 6.2vw, 118px);
+  }
+
+  .about-copy h2 {
+    width: 514px;
+    max-width: 100%;
+    min-height: 64px;
+    font-size: 60px;
+    line-height: 64px;
+    white-space: nowrap;
+  }
+
+  .about-copy p {
+    width: 568.59px;
+    max-width: 100%;
+    margin-top: 34px;
+    font-size: 24px;
+    line-height: 33px;
+  }
+
+  .about-visual {
+    width: min(100%, 661.82px);
+    margin-right: 0;
   }
 }
 
@@ -946,7 +937,7 @@ h1 em {
     padding-top: 0;
   }
 
-  .about-orbits {
+  .about-visual {
     justify-self: center;
     margin-top: 72px;
   }
@@ -1019,8 +1010,7 @@ h1 em {
     line-height: 1.06;
   }
 
-  .hero-art img,
-  .hero-art video {
+  .hero-art img {
     left: 50%;
     width: clamp(980px, 138vw, 1280px);
     max-width: none;
@@ -1045,22 +1035,9 @@ h1 em {
     font-size: 19px;
   }
 
-  .about-orbits {
+  .about-visual {
     width: min(100%, 560px);
     margin-top: 52px;
-  }
-
-  .about-orbits article {
-    height: 270px;
-    padding: 42px 70px;
-  }
-
-  .about-orbits h3 {
-    font-size: clamp(48px, 6vw, 60px);
-  }
-
-  .about-orbits p {
-    font-size: 19px;
   }
 
   .focus {
@@ -1373,52 +1350,10 @@ h1 em {
     padding-top: 0;
   }
 
-  .about-orbits {
-    align-self: start;
-    width: min(100%, calc(100vw - 124px), 286px);
-margin-top: 50px;
-        padding-top: 0px;
-        margin-bottom: 50px;
-    
-  }
-
-  .about-orbits article {
-    height: clamp(132px, 34vw, 160px);
-    padding: clamp(22px, 6.4vw, 34px) clamp(24px, 6.8vw, 40px) 20px;
-    align-content: start;
-  }
-
-  .about-orbits article:first-child {
-    padding-top: clamp(6px, 2.4vw, 12px);
-  }
-
-  .about-orbits article:first-child p {
-    margin-top: 2px;
-  }
-
-  .about-orbits article:last-child {
-    margin-top: clamp(-16px, -4vw, -12px);
-    padding-top: clamp(30px, 8.4vw, 40px);
-  }
-
-  .about-orbits h3 {
-    width: min(100%, 115.34px);
-    min-height: 39.4px;
-    font-size: 28px;
-    font-weight: 500;
-    line-height: 50px;
-  }
-
-  .about-orbits p {
-    width: min(100%, 212px);
-    max-width: 212px;
-    margin-top: clamp(10px, 3vw, 16px);
-    font-size: 14px;
-    line-height: 20px;
-  }
-
-  .about-orbits article:last-child p {
-    margin-top: 4px;
+  .about-visual {
+    justify-self: center;
+    width: min(100%, calc(100vw - 68px), 320px);
+    margin-top: 38px;
   }
 
   .focus {
@@ -1535,12 +1470,11 @@ margin-top: 50px;
     letter-spacing: 0;
   }
 
-  .hero-art img,
-  .hero-art video {
+  .hero-art img {
     width: 100%;
   }
 
-  .hero-art video {
+  .hero-art .hero-illustration {
     display: none;
   }
 
@@ -1575,6 +1509,27 @@ margin-top: 50px;
   .hero-phone-art .hero-phone-lower {
     top: auto;
     bottom: clamp(-24px, -3svh, -12px);
+  }
+
+  @media (max-height: 700px) {
+    .hero {
+      height: var(--phone-hero-height);
+    }
+
+    .hero-copy {
+      top: 36%;
+    }
+
+    .hero-phone-art .hero-phone-upper {
+      top: clamp(-198px, -30svh, -176px);
+    }
+
+    .hero-phone-art .hero-phone-lower {
+      left: 58%;
+      width: 92%;
+      bottom: -72px;
+      transform: translateX(-50%);
+    }
   }
 
   .focus-list {
@@ -1756,17 +1711,8 @@ margin-top: 50px;
     padding-inline: clamp(34px, 8.8vw, 68px);
   }
 
-  .about-orbits article {
-    height: clamp(132px, 34vw, 160px);
-    padding-inline: 26px;
-  }
-
-  .about-orbits {
-    width: min(100%, calc(100vw - 124px), 286px);
-  }
-
-  .about-orbits article:last-child {
-    padding-top: clamp(30px, 8.4vw, 40px);
+  .about-visual {
+    width: min(100%, calc(100vw - 68px), 320px);
   }
 
 }

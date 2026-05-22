@@ -241,7 +241,7 @@ const setupRevealAnimations = () => {
         ".hero-copy",
         ".hero-art",
         ".about-copy",
-        ".about-orbits article",
+        ".about-visual",
         ".section-heading",
         ".focus-card",
         ".council .section-kicker",
@@ -253,7 +253,7 @@ const setupRevealAnimations = () => {
     ),
   );
 
-  document.querySelectorAll(".about-orbits article, .focus-card").forEach((element, index) => {
+  document.querySelectorAll(".about-visual, .focus-card").forEach((element, index) => {
     element.style.setProperty("--reveal-delay", `${index * 90}ms`);
   });
 
@@ -325,33 +325,5 @@ const setupMobileMenu = () => {
   });
 };
 
-const setupHeroVideo = () => {
-  const desktopHero = window.matchMedia("(min-width: 760px)");
-  const video = document.querySelector(".hero-art video");
-  const source = video?.querySelector("source[data-src]");
-
-  if (!video || !source) return;
-
-  const syncHeroMedia = () => {
-    if (desktopHero.matches) {
-      if (!source.getAttribute("src")) {
-        source.setAttribute("src", source.dataset.src);
-        video.load();
-      }
-
-      video.play().catch(() => {});
-      return;
-    }
-
-    video.pause();
-    source.removeAttribute("src");
-    video.load();
-  };
-
-  syncHeroMedia();
-  desktopHero.addEventListener("change", syncHeroMedia);
-};
-
-setupHeroVideo();
 setupRevealAnimations();
 setupMobileMenu();
