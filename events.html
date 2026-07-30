@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Explore upcoming and past events from the Digital Commerce Coalition."
+    />
+    <title>Events | Digital Commerce Coalition</title>
+    <link rel="icon" type="image/png" href="./assets/logoicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260729-press-nav" />
+    <link rel="stylesheet" href="./events.css?v=20260729-events" />
+  </head>
+  <body class="events-page">
+    <header class="site-header" aria-label="Main navigation">
+      <a
+        class="brand"
+        href="./index.html"
+        aria-label="Digital Commerce Coalition home"
+      >
+        <img
+          class="brand-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+      </a>
+
+      <nav class="nav-links" aria-label="Sections">
+        <a href="./index.html#about" data-label="About">About</a>
+        <a href="./index.html#focus" data-label="Focus Areas">Focus Areas</a>
+        <a href="./index.html#work" data-label="How We Work">How We Work</a>
+        <a href="./index.html#council" data-label="Members">Members</a>
+        <a href="#contact" data-label="Contact">Contact</a>
+      </nav>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
+      <nav id="mobile-menu" class="mobile-menu" aria-label="Mobile sections">
+        <a href="./index.html#about">About</a>
+        <a href="./index.html#focus">Focus Areas</a>
+        <a href="./index.html#work">How We Work</a>
+        <a href="./index.html#council">Members</a>
+        <a href="#contact">Contact</a>
+        <p class="mobile-menu-copy">
+          © 2026 Digital Commerce Coalition.<br />
+          All rights reserved.
+        </p>
+      </nav>
+    </header>
+
+    <main id="top" class="events-main">
+      <div class="diamond-rails" aria-hidden="true">
+        <span></span>
+        <span></span>
+      </div>
+
+      <section class="events-hero" aria-labelledby="events-title">
+        <div class="events-hero-copy">
+          <p class="events-eyebrow">Coalition convenings</p>
+          <h1 id="events-title">
+            Ideas move forward when <em>people come together.</em>
+          </h1>
+          <p class="events-intro">
+            Explore convenings, roundtables and conversations bringing the
+            digital commerce ecosystem together around shared priorities.
+          </p>
+        </div>
+
+        <div class="events-hero-art" aria-hidden="true">
+          <div class="event-orbit event-orbit-large"></div>
+          <div class="event-orbit event-orbit-small"></div>
+          <div class="event-dot event-dot-one"></div>
+          <div class="event-dot event-dot-two"></div>
+          <div class="event-dot event-dot-three"></div>
+          <div class="event-date-tile event-date-tile-one">
+            <span>Connect</span>
+          </div>
+          <div class="event-date-tile event-date-tile-two">
+            <span>Exchange</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="events-section upcoming-events" aria-labelledby="upcoming-title">
+        <div class="events-section-heading">
+          <p class="events-eyebrow">What’s next</p>
+          <h2 id="upcoming-title">Upcoming Events</h2>
+        </div>
+
+        <div
+          id="upcoming-empty-state"
+          class="events-empty-state events-empty-upcoming"
+        >
+          <div class="events-empty-visual" aria-hidden="true">
+            <span class="empty-ring"></span>
+            <span class="empty-dot"></span>
+            <span class="empty-line"></span>
+          </div>
+          <div class="events-empty-copy">
+            <p class="events-empty-label">More soon</p>
+            <h3>Our next gathering is taking shape.</h3>
+            <p>
+              No upcoming events have been announced yet. Get in touch with the
+              Coalition secretariat to hear about future convenings.
+            </p>
+            <a
+              class="events-button"
+              href="mailto:secretariat@digitalcommercecoalition.com?subject=Digital%20Commerce%20Coalition%20event%20updates"
+            >
+              Get event updates
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+        <div
+          id="upcoming-event-list"
+          class="events-list"
+          aria-live="polite"
+          hidden
+        ></div>
+      </section>
+
+      <section class="events-section past-events" aria-labelledby="past-title">
+        <div class="events-section-heading">
+          <p class="events-eyebrow">From the archive</p>
+          <h2 id="past-title">Past Events</h2>
+        </div>
+
+        <div id="past-empty-state" class="past-events-archive">
+          <div class="archive-mark" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="archive-copy">
+            <p class="events-empty-label">Archive in progress</p>
+            <h3>Past conversations will live here.</h3>
+            <p>
+              We’re preparing an archive of Coalition events, insights and
+              highlights. Check back as the collection grows.
+            </p>
+          </div>
+        </div>
+        <div
+          id="past-event-list"
+          class="events-list events-list-past"
+          aria-live="polite"
+          hidden
+        ></div>
+      </section>
+
+      <section id="contact" class="events-contact" aria-labelledby="contact-title">
+        <p class="events-eyebrow">Stay connected</p>
+        <div class="events-contact-row">
+          <h2 id="contact-title">Have an event in mind?</h2>
+          <a href="mailto:secretariat@digitalcommercecoalition.com">
+            secretariat@digitalcommercecoalition.com
+            <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-left">
+        <img
+          class="brand-logo footer-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+        <p>© 2026 Digital Commerce Coalition. All rights reserved.</p>
+      </div>
+
+      <div class="footer-right">
+        <a
+          href="https://www.koanadvisory.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="koan-link"
+        >
+          <img class="koan-wordmark" src="./assets/Koan%20white.svg" alt="Koan" />
+          <p>Secretariat managed by <strong>Koan Advisory Group</strong></p>
+        </a>
+      </div>
+    </footer>
+
+    <script src="./events-data.js?v=20260729-event-detail"></script>
+    <script src="./script.js?v=20260729-event-detail"></script>
+  </body>
+</html>

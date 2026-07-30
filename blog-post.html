@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      id="blog-meta-description"
+      name="description"
+      content="An article from the Digital Commerce Coalition."
+    />
+    <title>Article | Digital Commerce Coalition</title>
+    <link rel="icon" type="image/png" href="./assets/logoicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260729-press-nav" />
+    <link rel="stylesheet" href="./blog.css?v=20260729-blog" />
+    <link rel="stylesheet" href="./blog-post.css?v=20260729-blog-post" />
+  </head>
+  <body class="blog-page blog-post-page">
+    <header class="site-header" aria-label="Main navigation">
+      <a
+        class="brand"
+        href="./index.html"
+        aria-label="Digital Commerce Coalition home"
+      >
+        <img
+          class="brand-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+      </a>
+
+      <nav class="nav-links" aria-label="Sections">
+        <a href="./index.html#about" data-label="About">About</a>
+        <a href="./index.html#focus" data-label="Focus Areas">Focus Areas</a>
+        <a href="./index.html#work" data-label="How We Work">How We Work</a>
+        <a href="./index.html#council" data-label="Members">Members</a>
+        <a href="#contact" data-label="Contact">Contact</a>
+      </nav>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
+      <nav id="mobile-menu" class="mobile-menu" aria-label="Mobile sections">
+        <a href="./index.html#about">About</a>
+        <a href="./index.html#focus">Focus Areas</a>
+        <a href="./index.html#work">How We Work</a>
+        <a href="./index.html#council">Members</a>
+        <a href="#contact">Contact</a>
+        <p class="mobile-menu-copy">
+          © 2026 Digital Commerce Coalition.<br />
+          All rights reserved.
+        </p>
+      </nav>
+    </header>
+
+    <main class="blog-post-main">
+      <div class="diamond-rails" aria-hidden="true">
+        <span></span>
+        <span></span>
+      </div>
+
+      <article>
+        <header class="blog-post-hero">
+          <a class="blog-back-link" href="./blog.html">
+            <span aria-hidden="true">←</span>
+            All articles
+          </a>
+          <p id="blog-post-category" class="blog-eyebrow">Article</p>
+          <h1 id="blog-post-title">Coalition perspective</h1>
+          <p id="blog-post-excerpt" class="blog-post-excerpt"></p>
+          <div class="blog-post-meta">
+            <p id="blog-post-author"></p>
+            <p id="blog-post-date"></p>
+            <p id="blog-post-reading-time"></p>
+          </div>
+          <figure class="blog-post-image-wrap">
+            <img id="blog-post-image" src="" alt="" />
+          </figure>
+        </header>
+
+        <div class="blog-post-body">
+          <div class="blog-post-content">
+            <p id="blog-post-intro" class="blog-post-lead"></p>
+            <div id="blog-post-paragraphs" class="blog-post-paragraphs"></div>
+
+            <section class="blog-takeaways" aria-labelledby="takeaways-title">
+              <p class="blog-eyebrow">In brief</p>
+              <h2 id="takeaways-title">Three ideas to take forward</h2>
+              <ul id="blog-post-takeaways"></ul>
+            </section>
+          </div>
+        </div>
+      </article>
+
+      <section id="contact" class="blog-post-contact">
+        <p class="blog-eyebrow">Keep reading</p>
+        <div>
+          <h2>Explore more Coalition perspectives.</h2>
+          <a href="./blog.html">
+            View all articles
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-left">
+        <img
+          class="brand-logo footer-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+        <p>© 2026 Digital Commerce Coalition. All rights reserved.</p>
+      </div>
+
+      <div class="footer-right">
+        <a
+          href="https://www.koanadvisory.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="koan-link"
+        >
+          <img class="koan-wordmark" src="./assets/Koan%20white.svg" alt="Koan" />
+          <p>Secretariat managed by <strong>Koan Advisory Group</strong></p>
+        </a>
+      </div>
+    </footer>
+
+    <script src="./blog-data.js?v=20260729-blog-post"></script>
+    <script src="./blog-post.js?v=20260729-blog-post"></script>
+    <script src="./script.js?v=20260729-blog-post"></script>
+  </body>
+</html>

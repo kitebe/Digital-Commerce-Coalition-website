@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      id="event-meta-description"
+      name="description"
+      content="Event details from the Digital Commerce Coalition."
+    />
+    <title>Event | Digital Commerce Coalition</title>
+    <link rel="icon" type="image/png" href="./assets/logoicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700;800&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css?v=20260729-press-nav" />
+    <link rel="stylesheet" href="./events.css?v=20260729-events" />
+    <link rel="stylesheet" href="./event-detail.css?v=20260729-event-detail" />
+  </head>
+  <body class="events-page event-detail-page">
+    <header class="site-header" aria-label="Main navigation">
+      <a
+        class="brand"
+        href="./index.html"
+        aria-label="Digital Commerce Coalition home"
+      >
+        <img
+          class="brand-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+      </a>
+
+      <nav class="nav-links" aria-label="Sections">
+        <a href="./index.html#about" data-label="About">About</a>
+        <a href="./index.html#focus" data-label="Focus Areas">Focus Areas</a>
+        <a href="./index.html#work" data-label="How We Work">How We Work</a>
+        <a href="./index.html#council" data-label="Members">Members</a>
+        <a href="#contact" data-label="Contact">Contact</a>
+      </nav>
+
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobile-menu"
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+
+      <nav id="mobile-menu" class="mobile-menu" aria-label="Mobile sections">
+        <a href="./index.html#about">About</a>
+        <a href="./index.html#focus">Focus Areas</a>
+        <a href="./index.html#work">How We Work</a>
+        <a href="./index.html#council">Members</a>
+        <a href="#contact">Contact</a>
+        <p class="mobile-menu-copy">
+          © 2026 Digital Commerce Coalition.<br />
+          All rights reserved.
+        </p>
+      </nav>
+    </header>
+
+    <main class="event-detail-main">
+      <div class="diamond-rails" aria-hidden="true">
+        <span></span>
+        <span></span>
+      </div>
+
+      <section class="event-detail-hero" aria-labelledby="event-detail-title">
+        <div class="event-detail-copy">
+          <a class="event-back-link" href="./events.html">
+            <span aria-hidden="true">←</span>
+            All events
+          </a>
+          <p id="event-detail-status" class="events-eyebrow">Event</p>
+          <h1 id="event-detail-title" class="event-detail-title">
+            Coalition event
+          </h1>
+          <p id="event-detail-summary" class="event-detail-summary"></p>
+          <div class="event-detail-meta" aria-label="Event details">
+            <p id="event-detail-date"></p>
+            <p id="event-detail-location"></p>
+          </div>
+        </div>
+
+        <figure class="event-detail-image-wrap">
+          <img id="event-detail-image" src="" alt="" />
+        </figure>
+      </section>
+
+      <section class="event-detail-body" aria-label="About this event">
+        <article class="event-detail-article">
+          <p class="events-eyebrow">About the event</p>
+          <h2>Bringing shared priorities into focus.</h2>
+          <p id="event-detail-description"></p>
+
+          <div class="event-topics">
+            <h3>What the conversation explores</h3>
+            <ul id="event-detail-topics" class="event-topic-list"></ul>
+          </div>
+        </article>
+
+        <aside class="event-detail-aside" aria-labelledby="event-facts-title">
+          <h2 id="event-facts-title" class="event-facts-title">
+            Event information
+          </h2>
+          <dl class="event-facts">
+            <div>
+              <dt>Date</dt>
+              <dd id="event-fact-date"></dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd id="event-fact-location"></dd>
+            </div>
+            <div>
+              <dt>Format</dt>
+              <dd id="event-fact-format"></dd>
+            </div>
+          </dl>
+          <a class="event-detail-button" href="mailto:secretariat@digitalcommercecoalition.com">
+            Contact the secretariat
+            <span aria-hidden="true">↗</span>
+          </a>
+        </aside>
+      </section>
+
+      <section id="contact" class="event-detail-contact">
+        <p class="events-eyebrow">Keep exploring</p>
+        <div>
+          <h2>Discover more Coalition events.</h2>
+          <a href="./events.html">
+            View all events
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-left">
+        <img
+          class="brand-logo footer-logo"
+          src="./assets/Dcc_logo.svg"
+          alt="Digital Commerce Coalition"
+        />
+        <p>© 2026 Digital Commerce Coalition. All rights reserved.</p>
+      </div>
+
+      <div class="footer-right">
+        <a
+          href="https://www.koanadvisory.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="koan-link"
+        >
+          <img class="koan-wordmark" src="./assets/Koan%20white.svg" alt="Koan" />
+          <p>Secretariat managed by <strong>Koan Advisory Group</strong></p>
+        </a>
+      </div>
+    </footer>
+
+    <script src="./events-data.js?v=20260729-event-detail"></script>
+    <script src="./event-detail.js?v=20260729-event-detail"></script>
+    <script src="./script.js?v=20260729-event-detail"></script>
+  </body>
+</html>
