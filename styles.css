@@ -983,8 +983,8 @@ h1 em {
 
   .nav-links {
     flex-wrap: nowrap;
-    gap: clamp(16px, 2.2vw, 26px);
-    font-size: clamp(14px, 1.7vw, 17px);
+    gap: clamp(7px, 1vw, 12px);
+    font-size: clamp(12px, 1.45vw, 15px);
   }
 
   .nav-links a {

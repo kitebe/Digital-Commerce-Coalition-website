@@ -210,7 +210,14 @@ const wrapWordsForReveal = (element) => {
       return;
     }
 
-    Array.from(node.childNodes).forEach(walk);
+    const display = window.getComputedStyle(node).display;
+    const keepsDirectTextTogether =
+      display === "flex" || display === "inline-flex";
+
+    Array.from(node.childNodes).forEach((child) => {
+      if (keepsDirectTextTogether && child.nodeType === Node.TEXT_NODE) return;
+      walk(child);
+    });
   };
 
   walk(element);
@@ -285,6 +292,23 @@ const setupRevealAnimations = () => {
         ".press-contact .press-eyebrow",
         ".press-contact h2",
         ".press-contact a",
+        ".publications-section-heading .publications-eyebrow",
+        ".publications-section-heading h2",
+        ".publication-card .publication-meta",
+        ".publication-card h2",
+        ".publication-card-description",
+        ".publication-card-actions",
+        ".publications-contact .publications-eyebrow",
+        ".publications-contact h2",
+        ".publications-contact a",
+        ".publication-detail-copy .publications-eyebrow",
+        ".publication-detail-copy h1",
+        ".publication-detail-description",
+        ".publication-facts dd",
+        ".publication-about .publications-eyebrow",
+        ".publication-about h2",
+        ".publication-about-copy > p",
+        ".publication-theme-list li",
         ".trust-hero .blog-eyebrow",
         ".trust-hero h1",
         ".trust-meta",
@@ -341,6 +365,13 @@ const setupRevealAnimations = () => {
         ".press-section-heading",
         ".press-card",
         ".press-contact",
+        ".publications-section-heading",
+        ".publication-card",
+        ".publications-contact",
+        ".publication-back-link",
+        ".publication-detail-copy",
+        ".publication-detail-cover",
+        ".publication-about > div",
         ".trust-hero-copy",
         ".trust-hero-image",
         ".trust-deck",
