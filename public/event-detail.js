@@ -6,7 +6,7 @@ const allDccEvents = [
 const eventParams = new URLSearchParams(window.location.search);
 const requestedEventSlug = eventParams.get("event");
 const selectedDccEvent =
-  allDccEvents.find((event) => event.slug === requestedEventSlug) ||
+  allDccEvents.find((event) => event.slug === requestedEventSlug || event.previousSlugs?.includes(requestedEventSlug)) ||
   allDccEvents[0];
 
 const getEventDate = (event) =>
@@ -21,6 +21,11 @@ const setText = (selector, value) => {
 };
 
 if (selectedDccEvent) {
+  if (requestedEventSlug && requestedEventSlug !== selectedDccEvent.slug) {
+    const canonical = new URL(window.location.href);
+    canonical.searchParams.set("event", selectedDccEvent.slug);
+    window.history.replaceState({}, "", canonical);
+  }
   const eventDate = getEventDate(selectedDccEvent);
 
   document.title = `${selectedDccEvent.title} | Digital Commerce Coalition`;
@@ -33,10 +38,8 @@ if (selectedDccEvent) {
   setText("#event-detail-summary", selectedDccEvent.summary);
   setText("#event-detail-date", eventDate);
   setText("#event-detail-location", selectedDccEvent.location);
-  setText(
-    "#event-detail-description",
-    selectedDccEvent.description || selectedDccEvent.summary,
-  );
+  const description = document.querySelector("#event-detail-description");
+  if (description) description.innerHTML = selectedDccEvent.bodyHtml || "";
   setText("#event-fact-date", eventDate);
   setText("#event-fact-location", selectedDccEvent.location);
   setText("#event-fact-format", selectedDccEvent.format);

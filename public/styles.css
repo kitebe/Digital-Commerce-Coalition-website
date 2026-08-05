@@ -730,6 +730,32 @@ h1 em {
   will-change: transform;
 }
 
+.logo-track.is-static {
+  width: 100%;
+  justify-content: center;
+  animation: none;
+}
+
+.cms-rich-content {
+  display: grid;
+  gap: 1.15em;
+  min-width: 0;
+}
+
+.cms-rich-content > * { margin: 0; }
+.cms-rich-content h2 { font-size: clamp(28px, 3vw, 44px); line-height: 1.05; }
+.cms-rich-content h3 { font-size: clamp(22px, 2.2vw, 32px); line-height: 1.15; }
+.cms-rich-content ul, .cms-rich-content ol { display: grid; gap: .55em; padding-left: 1.3em; }
+.cms-rich-content blockquote { padding-left: 1em; border-left: 4px solid currentColor; font-style: italic; }
+.cms-rich-content pre { padding: 1em; overflow-x: auto; border-radius: 8px; background: rgb(0 0 0 / 8%); font-size: .8em; }
+.cms-rich-content .tableWrapper { overflow-x: auto; }
+.cms-rich-content table { width: 100%; border-collapse: collapse; }
+.cms-rich-content th, .cms-rich-content td { padding: .65em; border: 1px solid currentColor; text-align: left; }
+.cms-rich-content figure[data-cms-image] { display: grid; gap: .55em; margin: 1em 0; }
+.cms-rich-content figure[data-cms-image] img { width: 100%; height: auto; }
+.cms-rich-content figcaption { opacity: .7; font-size: .75em; }
+.cms-rich-content iframe { width: 100%; max-width: 100%; aspect-ratio: 16 / 9; height: auto; border: 0; }
+
 .logo-set {
   display: flex;
   flex: 0 0 auto;

@@ -1,0 +1,33 @@
+{
+  "name": "digital-commerce-coalition-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed:cms": "node scripts/seed-cms-content.mjs && node scripts/migrate-cms-v2.mjs",
+    "migrate:cms-v2": "node scripts/migrate-cms-v2.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tiptap/extension-file-handler": "^3.29.2",
+    "@tiptap/extension-image": "^3.29.2",
+    "@tiptap/extension-table": "^3.29.2",
+    "@tiptap/extension-youtube": "^3.29.2",
+    "@tiptap/html": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "next": "16.3.0",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.8.0"
+  }
+}

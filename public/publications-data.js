@@ -177,11 +177,17 @@ const renderPublicationDetail = () => {
   const params = new URLSearchParams(window.location.search);
   const requestedSlug = params.get("slug");
   const publication = dccPublications.find(
-    (item) => item.slug === requestedSlug && item.pdf,
+    (item) => (item.slug === requestedSlug || item.previousSlugs?.includes(requestedSlug)) && item.pdf,
   );
   if (!publication) {
     window.location.replace("./publications.html");
     return;
+  }
+
+  if (requestedSlug && requestedSlug !== publication.slug) {
+    const canonical = new URL(window.location.href);
+    canonical.searchParams.set("slug", publication.slug);
+    window.history.replaceState({}, "", canonical);
   }
 
   document.title = `${publication.title} | Digital Commerce Coalition`;
@@ -198,12 +204,18 @@ const renderPublicationDetail = () => {
   const date = document.querySelector("#publication-detail-date");
   const pages = document.querySelector("#publication-detail-pages");
   const themes = document.querySelector("#publication-detail-themes");
+  const body = document.querySelector("#publication-detail-body");
+  const bodyFallback = document.querySelector("#publication-detail-body-fallback");
   const cover = document.querySelector("#publication-detail-cover");
   const download = document.querySelector("#publication-detail-download");
 
   if (type) type.textContent = publication.type;
   if (title) title.textContent = publication.title;
   if (description) description.textContent = publication.description;
+  if (body && publication.bodyHtml && publication.bodyHtml !== "<p></p>") {
+    body.innerHTML = publication.bodyHtml;
+    if (bodyFallback) bodyFallback.hidden = true;
+  }
   if (date) date.textContent = publication.date;
   if (pages) pages.textContent = publication.pages;
   if (themes) {
