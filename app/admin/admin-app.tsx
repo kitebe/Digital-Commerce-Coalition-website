@@ -241,7 +241,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
           <button className={!activeCollection ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
           {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
         </nav>
-        <div className="cms-sidebar-footer"><a href="/" target="_blank" rel="noreferrer">View website ↗</a><button onClick={async () => { await fetch("/api/cms/session", { method: "DELETE" }); router.refresh(); }}>Sign out</button></div>
+        <div className="cms-sidebar-footer"><button onClick={async () => { await fetch("/api/cms/session", { method: "DELETE" }); router.refresh(); }}>Sign out</button></div>
       </aside>
       <main className="cms-main">
         <header className="cms-topbar"><div><span className="cms-live-dot" /> Website connected</div><div className="cms-topbar-actions"><a href="/" target="_blank" rel="noreferrer">Open website ↗</a><span className="cms-avatar">DC</span></div></header>
