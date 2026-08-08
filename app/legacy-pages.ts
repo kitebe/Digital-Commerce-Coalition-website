@@ -188,8 +188,9 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
   } = item;
   if (collection === "blogPosts") {
     const post = item as CmsContent["blogPosts"][number];
-    const words = post.body.replace(/<[^>]+>/g, "").split(/\s+/).filter(Boolean).length;
-    return { ...publicItem, date: formatExactDate(post.date), bodyHtml: post.body, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
+    const bodyStr = String(post.body || "");
+    const words = bodyStr.replace(/<[^>]+>/g, "").split(/\s+/).filter(Boolean).length;
+    return { ...publicItem, date: formatExactDate(post.date), bodyHtml: bodyStr, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
   }
   if (collection === "events") {
     const event = item as CmsContent["events"][number];
@@ -201,8 +202,8 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
       month: date ? new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(date) : "",
       year: date ? String(date.getUTCFullYear()) : "",
       href: `./event.html?event=${event.slug}`,
-      bodyHtml: event.body,
-      description: event.body.replace(/<[^>]+>/g, ""),
+      bodyHtml: String(event.body || ""),
+      description: String(event.body || "").replace(/<[^>]+>/g, ""),
     };
   }
   if (collection === "publications") {

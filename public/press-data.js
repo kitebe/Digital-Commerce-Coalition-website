@@ -3,49 +3,7 @@
  * The neutral example.com URL preserves the external-link interaction without
  * publishing a real article or publication.
  */
-const dccPressCoverage = [
-  {
-    publication: "Sample Publication 01",
-    date: "Month 00, 2026",
-    title:
-      "Leading Digital Commerce Companies Announce New Collaborative Platform",
-    url: "https://example.com/",
-  },
-  {
-    publication: "Sample Publication 02",
-    date: "Month 00, 2026",
-    title:
-      "New Coalition Sets Out Shared Priorities for Digital Commerce",
-    url: "https://example.com/",
-  },
-  {
-    publication: "Sample Publication 03",
-    date: "Month 00, 2026",
-    title:
-      "Industry Platform to Focus on Trust, Participation and Responsible Growth",
-    url: "https://example.com/",
-  },
-  {
-    publication: "Sample Publication 04",
-    date: "Month 00, 2026",
-    title:
-      "Digital Commerce Leaders Come Together to Support Small Businesses",
-    url: "https://example.com/",
-  },
-  {
-    publication: "Sample Publication 05",
-    date: "Month 00, 2026",
-    title: "Coalition Launches New Forum for Knowledge Exchange",
-    url: "https://example.com/",
-  },
-  {
-    publication: "Sample Publication 06",
-    date: "Month 00, 2026",
-    title:
-      "New Industry Initiative Aims to Strengthen India’s Digital Commerce Ecosystem",
-    url: "https://example.com/",
-  },
-];
+const dccPressCoverage = [];
 
 const createPressCard = (coverage, index) => {
   const card = document.createElement("a");

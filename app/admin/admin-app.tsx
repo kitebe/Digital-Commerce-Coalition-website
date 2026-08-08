@@ -330,10 +330,14 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
           <button className={!activeCollection ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
           {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
         </nav>
-        <div className="cms-sidebar-footer"><button onClick={handleSignOut}>Sign out</button></div>
+        <div className="cms-sidebar-footer">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderTop: '1px solid #e2e8f0' }}>
+            <span className="cms-avatar" style={{ margin: 0, background: '#1e293b', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600 }}>DC</span>
+            <button onClick={handleSignOut} style={{ color: '#64748b', fontSize: '14px', fontWeight: 500, padding: 0, border: 'none', background: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = '#0f172a'} onMouseOut={(e) => e.currentTarget.style.color = '#64748b'}>Sign out</button>
+          </div>
+        </div>
       </aside>
       <main className="cms-main">
-        <header className="cms-topbar"><div><span className="cms-live-dot" /> Website connected</div><div className="cms-topbar-actions"><a href="/" target="_blank" rel="noreferrer">Open website ↗</a><span className="cms-avatar">DC</span></div></header>
         {!activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
           <>
             {(!draft || activeCollection === "members") ? (
