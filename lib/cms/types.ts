@@ -32,7 +32,7 @@ export type BlogPost = EditorialWorkflow & {
   image: string;
   imageAlt: string;
   intro: string;
-  body: RichTextDocument;
+  body: string;
   takeaways: string[];
 };
 
@@ -45,9 +45,12 @@ export type CmsEvent = EditorialWorkflow & {
   location: string;
   image: string;
   imageAlt: string;
-  body: RichTextDocument;
+  body: string;
   topics: string[];
   linkLabel: string;
+  aboutEyebrow?: string;
+  aboutHeading?: string;
+  topicsHeading?: string;
 };
 
 export type PressCoverage = EditorialWorkflow & {
@@ -64,7 +67,7 @@ export type Publication = EditorialWorkflow & {
   title: string;
   shortTitle: string;
   description: string;
-  body: RichTextDocument;
+  body: string;
   coverImage: string;
   accent: "cyan" | "lavender" | "violet";
   pdf: string | null;

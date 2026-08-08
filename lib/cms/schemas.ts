@@ -4,8 +4,7 @@ import type {
   CmsCollection,
   CmsEntry,
   PublishState,
-  RichTextDocument,
-  RichTextNode,
+
 } from "./types";
 
 const safeString = z.string().max(20_000);
@@ -66,14 +65,7 @@ const validateRichNode = (node: RichTextNode, issues: string[], depth = 0) => {
   node.content?.forEach((child) => validateRichNode(child, issues, depth + 1));
 };
 
-export const richTextDocumentSchema = z
-  .object({ type: z.literal("doc"), content: z.array(z.unknown()).optional() })
-  .passthrough()
-  .superRefine((value, context) => {
-    const issues: string[] = [];
-    validateRichNode(value as RichTextDocument, issues);
-    issues.forEach((message) => context.addIssue({ code: "custom", message }));
-  });
+export const richTextDocumentSchema = safeString;
 
 const commonSlug = z.string().max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only.");
 const exactDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a complete date.");
@@ -84,25 +76,26 @@ export const entrySchemas = {
   blogPosts: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), date: exactDate.or(z.literal("")), category: shortString,
     title: shortString, excerpt: safeString, author: shortString, image: shortString,
-    imageAlt: shortString, intro: safeString, body: richTextDocumentSchema, takeaways: stringList,
+    imageAlt: shortString, intro: safeString, body: safeString, takeaways: stringList,
   }),
   events: workflowSchema.extend({
-    slug: commonSlug.or(z.literal("")), eventDate: exactDate.or(z.literal("")), format: shortString,
-    title: shortString, summary: safeString, location: shortString, image: shortString,
-    imageAlt: shortString, body: richTextDocumentSchema, topics: stringList, linkLabel: shortString,
+    slug: commonSlug.or(z.literal("")), eventDate: exactDate.or(z.literal("")).optional(), format: shortString.optional(),
+    title: shortString, summary: safeString.optional(), location: shortString.optional(), image: shortString.optional(),
+    imageAlt: shortString.optional(), body: safeString.optional(), topics: stringList.optional(), linkLabel: shortString.optional(),
+    aboutEyebrow: shortString.optional(), aboutHeading: shortString.optional(), topicsHeading: shortString.optional(),
   }),
   pressCoverage: workflowSchema.extend({
     publication: shortString, date: exactDate.or(z.literal("")), title: shortString, url: safeString,
   }),
   publications: workflowSchema.extend({
-    slug: commonSlug.or(z.literal("")), type: shortString, date: monthDate.or(z.literal("")),
-    title: shortString, shortTitle: shortString, description: safeString, body: richTextDocumentSchema,
-    coverImage: shortString, accent: z.enum(["cyan", "lavender", "violet"]),
-    pdf: safeString.nullable(), pages: shortString.nullable(), themes: stringList,
+    slug: commonSlug.or(z.literal("")), type: shortString.optional(), date: exactDate.or(z.literal("")).optional(),
+    title: shortString, shortTitle: shortString.optional(), description: safeString.optional(), body: safeString.optional(),
+    coverImage: shortString.optional(), accent: z.enum(["cyan", "lavender", "violet"]).optional(),
+    pdf: safeString.nullable().optional(), pages: shortString.nullable().optional(), themes: stringList.optional(),
   }),
   reports: workflowSchema.extend({
-    type: shortString, date: monthDate.or(z.literal("")), title: shortString,
-    description: safeString, coverImage: shortString, pdf: safeString.nullable(),
+    type: shortString.optional(), date: exactDate.or(z.literal("")).optional(), title: shortString,
+    description: safeString.optional(), coverImage: shortString.optional(), pdf: safeString.nullable().optional(),
   }),
   members: workflowSchema.extend({ name: shortString, logo: shortString, logoAlt: shortString }),
 } satisfies Record<CmsCollection, z.ZodType>;
@@ -142,7 +135,7 @@ export function validateCmsEntry(
     if (collection === "pressCoverage") required(fieldErrors, record, ["title", "publication", "date", "url"]);
     if (collection === "members") required(fieldErrors, record, ["name", "logo", "logoAlt"]);
 
-    if ((collection === "blogPosts" || collection === "events") && richTextToPlainText(record.body as RichTextDocument).length < 10) {
+    if ((collection === "blogPosts" || collection === "events") && record.body.length < 10) {
       fieldErrors.body = "Add meaningful content before publishing.";
     }
     if (collection === "pressCoverage") {

@@ -36,6 +36,9 @@ if (selectedDccEvent) {
   setText("#event-detail-status", selectedDccEvent.status);
   setText("#event-detail-title", selectedDccEvent.title);
   setText("#event-detail-summary", selectedDccEvent.summary);
+  setText("#event-detail-about-eyebrow", selectedDccEvent.aboutEyebrow || "About the event");
+  setText("#event-detail-about-heading", selectedDccEvent.aboutHeading || "Bringing shared priorities into focus.");
+  setText("#event-detail-topics-heading", selectedDccEvent.topicsHeading || "What the conversation explores");
   setText("#event-detail-date", eventDate);
   setText("#event-detail-location", selectedDccEvent.location);
   const description = document.querySelector("#event-detail-description");
