@@ -10,7 +10,7 @@ export async function PageView({ page, requestedPreviewId }: { page: PageDefinit
   const preview = await draftMode();
   const previewId = preview.isEnabled ? requestedPreviewId : undefined;
   const markup = getPageMarkup(page);
-  const runtime = getPageRuntime(page, previewId);
+  const runtime = await getPageRuntime(page, previewId);
 
   return (
     <>

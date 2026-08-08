@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { emptyRichTextDocument } from "../../lib/cms/rich-text";
 import type { CmsCollection, CmsContent, CmsEntry, RichTextDocument } from "../../lib/cms/types";
 import { RichTextEditor } from "./rich-text-editor";
+import { getClientAuth } from "../../lib/cms/firebase-client";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 type AdminAppProps = { configured: boolean; authenticated: boolean; initialContent: CmsContent | null; loginError: string };
 type EditorItem = Record<string, unknown>;
@@ -18,6 +20,9 @@ const collectionOrder: CmsCollection[] = ["blogPosts", "events", "publications",
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const newWorkflow = () => ({ id: "new", version: 0, publishState: "draft", createdAt: "", updatedAt: "" });
 
+const getTodayDate = () => new Date().toISOString().split("T")[0];
+const getCurrentMonth = () => new Date().toISOString().slice(0, 7);
+
 const configs: Record<CmsCollection, CollectionConfig> = {
   blogPosts: {
     label: "Articles", singular: "article", titleKey: "title", titleLabel: "Article title", description: "Long-form perspectives shown in the Coalition blog.",
@@ -30,7 +35,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "image", label: "Feature image", kind: "asset", group: "media", accept: "image/*" },
       { key: "imageAlt", label: "Feature image description", group: "media" },
     ],
-    create: (position) => ({ ...newWorkflow(), title: "Untitled article", slug: `untitled-article-${position + 1}`, date: "", category: "Coalition perspectives", author: "Digital Commerce Coalition", excerpt: "", intro: "", body: emptyRichTextDocument(), takeaways: [], image: "", imageAlt: "", previousSlugs: [] }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled article", slug: `untitled-article-${position + 1}`, date: getTodayDate(), category: "Coalition perspectives", author: "Digital Commerce Coalition", excerpt: "", intro: "", body: emptyRichTextDocument(), takeaways: [], image: "", imageAlt: "", previousSlugs: [] }),
   },
   events: {
     label: "Events", singular: "event", titleKey: "title", titleLabel: "Event title", description: "Upcoming and past Coalition convenings.",
@@ -44,7 +49,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "image", label: "Event image", kind: "asset", group: "media", accept: "image/*" },
       { key: "imageAlt", label: "Event image description", group: "media" },
     ],
-    create: (position) => ({ ...newWorkflow(), title: "Untitled event", slug: `untitled-event-${position + 1}`, eventDate: "", format: "Roundtable", location: "", summary: "", body: emptyRichTextDocument(), topics: [], linkLabel: "Read more", image: "", imageAlt: "", previousSlugs: [] }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled event", slug: `untitled-event-${position + 1}`, eventDate: getTodayDate(), format: "Roundtable", location: "", summary: "", body: emptyRichTextDocument(), topics: [], linkLabel: "Read more", image: "", imageAlt: "", previousSlugs: [] }),
   },
   publications: {
     label: "Publications", singular: "publication", titleKey: "title", titleLabel: "Publication title", description: "Briefs, perspectives, and downloadable publications.",
@@ -58,7 +63,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "accent", label: "Cover accent", kind: "select", group: "media", options: ["cyan", "lavender", "violet"] },
       { key: "pdf", label: "PDF", kind: "asset", group: "media", accept: "application/pdf" },
     ],
-    create: (position) => ({ ...newWorkflow(), title: "Untitled publication", shortTitle: "Untitled", slug: `untitled-publication-${position + 1}`, type: "Coalition brief", date: "", pages: null, description: "", body: emptyRichTextDocument(), coverImage: "", accent: "cyan", pdf: null, themes: [], previousSlugs: [] }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled publication", shortTitle: "Untitled", slug: `untitled-publication-${position + 1}`, type: "Coalition brief", date: getCurrentMonth(), pages: null, description: "", body: emptyRichTextDocument(), coverImage: "", accent: "cyan", pdf: null, themes: [], previousSlugs: [] }),
   },
   reports: {
     label: "Reports", singular: "report", titleKey: "title", titleLabel: "Report title", description: "Coalition reports and downloadable reviews.",
@@ -68,7 +73,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "coverImage", label: "Cover image", kind: "asset", group: "media", accept: "image/*" },
       { key: "pdf", label: "PDF", kind: "asset", group: "media", accept: "application/pdf" },
     ],
-    create: () => ({ ...newWorkflow(), title: "Untitled report", type: "Coalition report", date: "", description: "", coverImage: "", pdf: null }),
+    create: () => ({ ...newWorkflow(), title: "Untitled report", type: "Coalition report", date: getCurrentMonth(), description: "", coverImage: "", pdf: null }),
   },
   pressCoverage: {
     label: "Press", singular: "press item", titleKey: "title", titleLabel: "Press headline", description: "External media coverage and announcements.",
@@ -76,7 +81,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "title", label: "Headline" }, { key: "publication", label: "Publication", group: "sidebar" },
       { key: "date", label: "Published date", kind: "date", group: "sidebar" }, { key: "url", label: "Article URL", kind: "url" },
     ],
-    create: () => ({ ...newWorkflow(), title: "Untitled press item", publication: "", date: "", url: "https://" }),
+    create: () => ({ ...newWorkflow(), title: "Untitled press item", publication: "", date: getTodayDate(), url: "https://" }),
   },
   members: {
     label: "Members", singular: "member", titleKey: "name", titleLabel: "Organisation name", description: "Organisations shown in the homepage Members section.",
@@ -104,13 +109,21 @@ const snapshot = (item: EditorItem | null) => item ? JSON.stringify(item) : "";
 
 export function AdminApp({ configured, authenticated, initialContent, loginError }: AdminAppProps) {
   const router = useRouter();
+  const handleSignOut = async () => {
+    const auth = getClientAuth();
+    if (auth) {
+      await auth.signOut().catch((e) => console.error("Firebase signOut error", e));
+    }
+    await fetch("/api/cms/session", { method: "DELETE" });
+    router.refresh();
+  };
   const [content, setContent] = useState(initialContent);
   const [activeCollection, setActiveCollection] = useState<CmsCollection | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditorItem | null>(null);
   const [savedSnapshot, setSavedSnapshot] = useState("");
   const [status, setStatus] = useState<SaveStatus>("idle");
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | null }>({ message: "", type: null });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -134,9 +147,15 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [isDirty]);
+  useEffect(() => {
+    if (toast.type) {
+      const timer = setTimeout(() => setToast({ message: "", type: null }), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const canLeaveEditor = () => !isDirty || window.confirm("Discard your unsaved changes?");
-  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setMessage(""); setStatus("idle"); setSlugUnlocked(false); };
+  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); };
   const selectCollection = (collection: CmsCollection, id?: string) => {
     if (!canLeaveEditor()) return;
     setActiveCollection(collection); resetEditor(); setSearchQuery(""); setStatusFilter("all");
@@ -147,7 +166,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   };
   const selectItem = (item: CmsEntry) => {
     const next = clone(item as unknown as EditorItem);
-    setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setMessage(""); setStatus("idle"); setSlugUnlocked(false);
+    setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false);
   };
   const updateDraft = (key: string, value: unknown) => {
     setDraft((current) => {
@@ -158,12 +177,12 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
       return next;
     });
     setFieldErrors((current) => { const next = { ...current }; delete next[key]; return next; });
-    setStatus("idle"); setMessage("");
+    setStatus("idle");
   };
   const parseResponse = async (response: Response) => await response.json() as { content?: CmsContent; error?: string; fieldErrors?: Record<string, string> };
   const applySaveResult = (result: { content?: CmsContent; error?: string; fieldErrors?: Record<string, string> }, response: Response, wasNew: boolean) => {
     if (!response.ok || !result.content || !activeCollection) {
-      setStatus("error"); setMessage(result.error || "Could not save this entry."); setFieldErrors(result.fieldErrors || {}); return false;
+      setStatus("error"); setToast({ message: result.error || "Could not save this entry.", type: "error" }); setFieldErrors(result.fieldErrors || {}); return false;
     }
     setContent(result.content);
     const refreshedItems = getItems(result.content, activeCollection);
@@ -173,7 +192,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   };
   const saveItem = async (action: SaveAction) => {
     if (!activeCollection || !draft) return;
-    setStatus("saving"); setMessage("");
+    setStatus("saving");
     const wasNew = isNew;
     const response = await fetch("/api/cms/content", {
       method: wasNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" },
@@ -183,22 +202,23 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
     });
     const result = await parseResponse(response);
     if (applySaveResult(result, response, wasNew)) {
-      setMessage(action === "publish" || action === "save-published" ? "Published changes saved." : action === "unpublish" ? "Entry moved to drafts." : "Draft saved.");
+      setToast({ message: action === "publish" || action === "save-published" ? "Published changes saved." : action === "unpublish" ? "Entry moved to drafts." : "Draft saved.", type: "success" });
       setSlugUnlocked(false);
     }
   };
   const createItem = () => {
     if (!activeCollection) return;
     const next = configs[activeCollection].create(items.length);
-    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setMessage(""); setStatus("idle"); setSlugUnlocked(true);
+    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(true);
   };
   const deleteItem = async () => {
     if (!activeCollection || !draft || isNew || !window.confirm(`Delete “${itemTitle(draft)}”? This cannot be undone.`)) return;
     setStatus("saving");
     const response = await fetch("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: selectedId, version: draft.version }) });
     const result = await parseResponse(response);
-    if (!response.ok || !result.content) { setStatus("error"); setMessage(result.error || "Could not delete this entry."); return; }
+    if (!response.ok || !result.content) { setStatus("error"); setToast({ message: result.error || "Could not delete this entry.", type: "error" }); return; }
     setContent(result.content); resetEditor();
+    setToast({ message: "Entry deleted.", type: "success" });
   };
   const moveItem = async (direction: -1 | 1) => {
     if (!activeCollection || !selectedId || isNew) return;
@@ -208,15 +228,15 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
     const ordered = [...items]; [ordered[index], ordered[destination]] = [ordered[destination], ordered[index]];
     const response = await fetch("/api/cms/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, action: "reorder", orderedIds: ordered.map((item) => item.id) }) });
     const result = await parseResponse(response);
-    if (response.ok && result.content) setContent(result.content); else { setStatus("error"); setMessage(result.error || "Could not change display order."); }
+    if (response.ok && result.content) setContent(result.content); else { setStatus("error"); setToast({ message: result.error || "Could not change display order.", type: "error" }); }
   };
   const uploadFile = async (file: File, fieldKey = "body") => {
-    setUploadingField(fieldKey); setMessage("");
+    setUploadingField(fieldKey);
     const body = new FormData(); body.append("file", file);
     const response = await fetch("/api/cms/media", { method: "POST", body });
     const result = await response.json() as { url?: string; error?: string };
     setUploadingField(null);
-    if (!response.ok || !result.url) { setStatus("error"); setMessage(result.error || "Upload failed."); return undefined; }
+    if (!response.ok || !result.url) { setStatus("error"); setToast({ message: result.error || "Upload failed.", type: "error" }); return undefined; }
     return result.url;
   };
 
@@ -241,7 +261,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
           <button className={!activeCollection ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
           {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
         </nav>
-        <div className="cms-sidebar-footer"><button onClick={async () => { await fetch("/api/cms/session", { method: "DELETE" }); router.refresh(); }}>Sign out</button></div>
+        <div className="cms-sidebar-footer"><button onClick={handleSignOut}>Sign out</button></div>
       </aside>
       <main className="cms-main">
         <header className="cms-topbar"><div><span className="cms-live-dot" /> Website connected</div><div className="cms-topbar-actions"><a href="/" target="_blank" rel="noreferrer">Open website ↗</a><span className="cms-avatar">DC</span></div></header>
@@ -266,7 +286,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
                 {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving"}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving"}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => { if (window.confirm("Unpublish this entry and move it to drafts?")) void saveItem("unpublish"); }} disabled={status === "saving"}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
               </div>
             </header>
-            <div className={`cms-editor-notice is-${status}`} role="status">{Object.keys(fieldErrors).length ? `Fix ${Object.keys(fieldErrors).length} highlighted field${Object.keys(fieldErrors).length === 1 ? "" : "s"}.` : message || (isDirty ? "Unsaved changes" : itemStatus(draft) === "published" ? "This entry is live on the website." : "This entry is only visible in the CMS.")}</div>
+            <div className={`cms-editor-notice is-${status}`} role="status">{Object.keys(fieldErrors).length ? `Fix ${Object.keys(fieldErrors).length} highlighted field${Object.keys(fieldErrors).length === 1 ? "" : "s"}.` : (isDirty ? "Unsaved changes" : itemStatus(draft) === "published" ? "This entry is live on the website." : "This entry is only visible in the CMS.")}</div>
             <div className="cms-editor-layout">
               <div className="cms-editor-content">
                 {contentFields.length ? <EditorSection title="Content" description="The main information visitors will see.">{contentFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={uploadingField === field.key} onChange={(value) => updateDraft(field.key, value)} onUpload={async (file) => { const url = await uploadFile(file, field.key); if (url) updateDraft(field.key, url); return url; }} />)}</EditorSection> : null}
@@ -280,6 +300,11 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
                 <section className="cms-danger-zone"><p className="cms-aside-label">Entry actions</p><button onClick={isNew ? () => { if (canLeaveEditor()) resetEditor(); } : () => void deleteItem()}>{isNew ? "Discard entry" : "Delete entry"}</button></section>
               </aside>
             </div>
+            {toast.type && (
+              <div className={`cms-toast is-${toast.type}`}>
+                {toast.message}
+              </div>
+            )}
           </section>
         )}
       </main>
@@ -297,7 +322,7 @@ function CmsField({ field, value, error, uploading, onChange, onUpload }: { fiel
   return (
     <label className={`cms-field cms-field-${field.kind || "text"}${error ? " has-error" : ""}`}>
       <span>{field.label}</span>{field.help ? <small>{field.help}</small> : null}
-      {field.kind === "textarea" || field.kind === "repeater" ? <textarea rows={field.kind === "repeater" ? 5 : 4} value={stringValue} onChange={(event) => onChange(field.kind === "repeater" ? event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) : event.target.value)} /> : field.kind === "select" ? <select value={stringValue} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select> : field.kind === "asset" ? <div className="cms-asset-field"><input value={stringValue} onChange={(event) => onChange(event.target.value)} /><label className="cms-upload-button">{uploading ? "Uploading…" : stringValue ? "Replace" : "Upload"}<input type="file" accept={field.accept} disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.target.value = ""; }} /></label>{stringValue ? <button type="button" className="cms-remove-asset" onClick={() => onChange(field.key === "pdf" ? null : "")}>Remove</button> : null}{stringValue && field.accept?.includes("image") ? <img className="cms-asset-preview" src={stringValue.replace(/^\.\//, "/")} alt="" /> : null}</div> : <input type={field.kind === "date" ? "date" : field.kind === "month" ? "month" : field.kind === "url" ? "url" : "text"} value={stringValue} onChange={(event) => onChange(event.target.value)} />}
+      {field.kind === "textarea" || field.kind === "repeater" ? <textarea rows={field.kind === "repeater" ? 5 : 4} value={stringValue} onChange={(event) => onChange(field.kind === "repeater" ? event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) : event.target.value)} /> : field.kind === "select" ? <select value={stringValue} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select> : field.kind === "asset" ? <div className="cms-asset-field"><input placeholder="Paste image URL or upload file..." value={stringValue} onChange={(event) => onChange(event.target.value)} /><label className="cms-upload-button">{uploading ? "Uploading…" : stringValue ? "Replace" : "Upload"}<input type="file" accept={field.accept} disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.target.value = ""; }} /></label>{stringValue ? <button type="button" className="cms-remove-asset" onClick={() => onChange(field.key === "pdf" ? null : "")}>Remove</button> : null}{stringValue && field.accept?.includes("image") ? <img className="cms-asset-preview" src={stringValue.replace(/^\.\//, "/")} alt="" /> : null}</div> : <input type={field.kind === "date" ? "date" : field.kind === "month" ? "month" : field.kind === "url" ? "url" : "text"} value={stringValue} onChange={(event) => onChange(event.target.value)} />}
       {error ? <small className="cms-field-error">{error}</small> : null}
     </label>
   );
@@ -311,7 +336,161 @@ function CmsOverview({ content, onOpen }: { content: CmsContent; onOpen: (collec
 }
 
 function CmsLogin({ error }: { error: string }) {
-  return <main className="cms-auth-page"><section className="cms-login-card"><a href="/" className="cms-login-brand"><img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" /></a><p className="cms-eyebrow">Content studio</p><h1>Welcome back</h1><p>Sign in to manage website content.</p><form action="/api/cms/session" method="post"><label><span>Password</span><input name="password" type="password" autoComplete="current-password" autoFocus required /></label>{error ? <p className="cms-auth-error">{error}</p> : null}<button className="cms-primary-button" type="submit">Sign in</button></form><a className="cms-back-link" href="/">← Back to website</a></section></main>;
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [firebaseError, setFirebaseError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const auth = getClientAuth();
+  const isFirebaseActive = auth !== null;
+
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth) return;
+    setIsLoading(true);
+    setFirebaseError("");
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const idToken = await userCredential.user.getIdToken();
+      const response = await fetch("/api/cms/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Authentication failed on backend.");
+      }
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+      setFirebaseError(err.message || "Failed to sign in.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (!auth) return;
+    setIsLoading(true);
+    setFirebaseError("");
+
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      const response = await fetch("/api/cms/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+      const resultJson = await response.json();
+      if (!response.ok) {
+        throw new Error(resultJson.error || "Authentication failed on backend.");
+      }
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+      setFirebaseError(err.message || "Failed to sign in with Google.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isFirebaseActive) {
+    return (
+      <main className="cms-auth-page">
+        <section className="cms-login-card">
+          <a href="/" className="cms-login-brand">
+            <img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" />
+          </a>
+          <p className="cms-eyebrow">Content studio</p>
+          <h1>Welcome back</h1>
+          <p>Sign in with your Firebase account.</p>
+          
+          <form onSubmit={handleEmailSignIn}>
+            <label>
+              <span>Email</span>
+              <input
+                name="email"
+                type="email"
+                autoComplete="email"
+                autoFocus
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </label>
+            {firebaseError || error ? (
+              <p className="cms-auth-error">{firebaseError || error}</p>
+            ) : null}
+            <button className="cms-primary-button" type="submit" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+
+          <div className="cms-login-divider">
+            <span>or</span>
+          </div>
+
+          <button
+            className="cms-secondary-button cms-google-button"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading}
+            type="button"
+          >
+            <svg viewBox="0 0 24 24" width="16" height="16" className="google-icon" fill="currentColor">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+            </svg>
+            <span>Sign in with Google</span>
+          </button>
+
+          <a className="cms-back-link" href="/">← Back to website</a>
+        </section>
+      </main>
+    );
+  }
+
+  // Original fallback UI if Firebase is not active
+  return (
+    <main className="cms-auth-page">
+      <section className="cms-login-card">
+        <a href="/" className="cms-login-brand">
+          <img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" />
+        </a>
+        <p className="cms-eyebrow">Content studio</p>
+        <h1>Welcome back</h1>
+        <p>Sign in to manage website content.</p>
+        <form action="/api/cms/session" method="post">
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" autoComplete="current-password" autoFocus required />
+          </label>
+          {error ? <p className="cms-auth-error">{error}</p> : null}
+          <button className="cms-primary-button" type="submit">Sign in</button>
+        </form>
+        <a className="cms-back-link" href="/">← Back to website</a>
+      </section>
+    </main>
+  );
 }
 
 function CmsSetup() {

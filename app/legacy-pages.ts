@@ -284,9 +284,9 @@ export function getPageMarkup(page: PageDefinition) {
   return markup.replaceAll('"./assets/', '"/assets/');
 }
 
-export function getPageRuntime(page: PageDefinition, previewId?: string) {
+export async function getPageRuntime(page: PageDefinition, previewId?: string) {
   const content = page.scripts.some((script) => managedScripts[script])
-    ? readCmsContent()
+    ? await readCmsContent()
     : null;
   const source = page.scripts
     .map((script) =>

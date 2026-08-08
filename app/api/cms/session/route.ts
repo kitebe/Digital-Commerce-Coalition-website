@@ -5,6 +5,8 @@ import {
   isCmsAuthenticated,
   isCmsConfigured,
   verifyCmsPassword,
+  verifyFirebaseIdToken,
+  createSessionToken,
 } from "../../../../lib/cms/auth";
 
 export const dynamic = "force-dynamic";
@@ -37,20 +39,56 @@ export async function POST(request: Request) {
       return NextResponse.redirect(new URL("/admin?error=setup", request.url), 303);
     }
     return NextResponse.json(
-      { error: "Set CMS_PASSWORD before signing in." },
+      { error: "Set Firebase credentials or CMS_PASSWORD before signing in." },
       { status: 503 },
     );
   }
 
+  let body: { password?: unknown; idToken?: unknown } | null = null;
+  if (!isFormSubmission) {
+    body = (await request.json().catch(() => null)) as { password?: unknown; idToken?: unknown } | null;
+  }
+
+  // 1. Check if Firebase ID token is provided
+  const idToken = typeof body?.idToken === "string" ? body.idToken : "";
+  if (idToken) {
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!projectId) {
+      return NextResponse.json({ error: "Firebase is not configured on the server." }, { status: 500 });
+    }
+    const payload = await verifyFirebaseIdToken(idToken, projectId);
+    const email = payload && typeof payload.email === "string" ? payload.email : "";
+    const sub = payload && typeof payload.sub === "string" ? payload.sub : "";
+    if (!payload || !email || !sub) {
+      return NextResponse.json({ error: "Invalid or expired Firebase ID token." }, { status: 401 });
+    }
+
+    const allowed = process.env.ALLOWED_CMS_USERS
+      ? process.env.ALLOWED_CMS_USERS.split(",").map((e) => e.trim().toLowerCase())
+      : [];
+    if (allowed.length > 0 && !allowed.includes(email.toLowerCase())) {
+      return NextResponse.json({ error: "Your account is not authorized to access this CMS." }, { status: 403 });
+    }
+
+    const sessionToken = await createSessionToken(email, sub);
+    const response = NextResponse.json({ authenticated: true });
+    response.cookies.set(CMS_SESSION_COOKIE, sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isSecureRequest(request),
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    return response;
+  }
+
+  // 2. Fall back to old static password logic
   let password = "";
   if (isFormSubmission) {
     const formData = await request.formData();
     const submittedPassword = formData.get("password");
     password = typeof submittedPassword === "string" ? submittedPassword : "";
   } else {
-    const body = (await request.json().catch(() => null)) as
-      | { password?: unknown }
-      | null;
     password = typeof body?.password === "string" ? body.password : "";
   }
 
@@ -85,3 +123,4 @@ export async function DELETE(request: Request) {
   });
   return response;
 }
+

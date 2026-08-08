@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { NextResponse } from "next/server";
 import { isCmsAuthenticated } from "../../../../lib/cms/auth";
+import { getStorageBucket } from "../../../../lib/cms/firebase-server";
 
 export const dynamic = "force-dynamic";
 
@@ -40,9 +41,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const uploadDirectory = join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDirectory, { recursive: true });
-
   const originalExtension = extname(file.name).toLowerCase();
   const extension = allowedTypes[file.type] || originalExtension;
   const baseName = file.name
@@ -53,6 +51,30 @@ export async function POST(request: Request) {
     .slice(0, 48) || "upload";
   const filename = `${baseName}-${randomUUID().slice(0, 8)}${extension}`;
 
+  const bucket = getStorageBucket();
+  if (bucket) {
+    try {
+      const token = randomUUID();
+      const fileRef = bucket.file(`uploads/${filename}`);
+      await fileRef.save(Buffer.from(await file.arrayBuffer()), {
+        metadata: {
+          contentType: file.type,
+          metadata: {
+            firebaseStorageDownloadTokens: token,
+          },
+        },
+      });
+      const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(`uploads/${filename}`)}?alt=media&token=${token}`;
+      return NextResponse.json({ url });
+    } catch (error) {
+      console.error("Firebase Storage upload failed, falling back to disk:", error);
+    }
+  }
+
+  // Fallback to local disk
+  const uploadDirectory = join(process.cwd(), "public", "uploads");
+  await mkdir(uploadDirectory, { recursive: true });
   await writeFile(join(uploadDirectory, filename), Buffer.from(await file.arrayBuffer()));
   return NextResponse.json({ url: `/uploads/${filename}` });
 }
+

@@ -32,7 +32,8 @@ export async function GET(request: Request) {
   if (!collection || !collections.has(collection) || !id) {
     return NextResponse.json({ error: "Choose an entry to preview." }, { status: 400 });
   }
-  const entry = (readCmsContent()[collection] as CmsEntry[]).find((item) => item.id === id);
+  const content = await readCmsContent();
+  const entry = (content[collection] as CmsEntry[]).find((item) => item.id === id);
   if (!entry) return NextResponse.json({ error: "Entry not found." }, { status: 404 });
   mode.enable();
   return NextResponse.redirect(new URL(previewUrl(collection, entry), request.url));

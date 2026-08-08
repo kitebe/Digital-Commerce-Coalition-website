@@ -81,7 +81,7 @@ const createReportCard = (report) => {
 
   const description = document.createElement("p");
   description.className = "publication-card-description";
-  description.textContent = report.description;
+  description.innerHTML = report.description;
 
   const actions = document.createElement("div");
   actions.className = "publication-card-actions report-card-actions";

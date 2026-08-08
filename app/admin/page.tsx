@@ -17,7 +17,7 @@ export default async function AdminPage({
     <AdminApp
       configured={configured}
       authenticated={authenticated}
-      initialContent={authenticated ? readCmsContent() : null}
+      initialContent={authenticated ? await readCmsContent() : null}
       loginError={error === "invalid" ? "Incorrect password." : ""}
     />
   );
