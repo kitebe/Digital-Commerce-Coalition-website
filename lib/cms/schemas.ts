@@ -84,7 +84,7 @@ export const entrySchemas = {
     aboutEyebrow: shortString.optional(), aboutHeading: shortString.optional(), topicsHeading: shortString.optional(),
   }),
   pressCoverage: workflowSchema.extend({
-    publication: shortString, date: exactDate.or(z.literal("")), title: shortString, url: safeString,
+    slug: commonSlug.or(z.literal("")), publication: shortString, date: exactDate.or(z.literal("")), title: shortString, url: safeString,
   }),
   publications: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), type: shortString.optional(), date: exactDate.or(z.literal("")).optional(),
@@ -93,7 +93,7 @@ export const entrySchemas = {
     pdf: safeString.nullable().optional(), pages: shortString.nullable().optional(), themes: stringList.optional(),
   }),
   reports: workflowSchema.extend({
-    type: shortString.optional(), date: exactDate.or(z.literal("")).optional(), title: shortString,
+    slug: commonSlug.or(z.literal("")), type: shortString.optional(), date: exactDate.or(z.literal("")).optional(), title: shortString,
     description: safeString.optional(), coverImage: shortString.optional(), pdf: safeString.nullable().optional(),
   }),
   members: workflowSchema.extend({ name: shortString, logo: shortString, logoAlt: shortString }),
@@ -130,8 +130,8 @@ export function validateCmsEntry(
     if (collection === "blogPosts") required(fieldErrors, record, ["title", "slug", "date", "category", "excerpt", "author", "image", "imageAlt"]);
     if (collection === "events") required(fieldErrors, record, ["title", "slug", "eventDate", "format", "summary", "location", "image", "imageAlt"]);
     if (collection === "publications") required(fieldErrors, record, ["title", "shortTitle", "slug", "type", "date", "description", "coverImage"]);
-    if (collection === "reports") required(fieldErrors, record, ["title", "type", "date", "description", "coverImage"]);
-    if (collection === "pressCoverage") required(fieldErrors, record, ["title", "publication", "date", "url"]);
+    if (collection === "reports") required(fieldErrors, record, ["title", "slug", "type", "date", "description", "coverImage"]);
+    if (collection === "pressCoverage") required(fieldErrors, record, ["title", "slug", "publication", "date", "url"]);
     if (collection === "members") required(fieldErrors, record, ["name", "logo", "logoAlt"]);
 
     if ((collection === "blogPosts" || collection === "events") && String(record.body || "").length < 10) {

@@ -109,6 +109,13 @@ function AdminDialogProvider({ children }: { children: ReactNode }) {
 
 const collectionOrder: CmsCollection[] = ["blogPosts", "events", "publications", "reports", "pressCoverage", "members"];
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const collectionRouteBase: Partial<Record<CmsCollection, string>> = {
+  blogPosts: "/blog",
+  events: "/events",
+  publications: "/publications",
+  reports: "/reports",
+  pressCoverage: "/press",
+};
 const newWorkflow = () => ({ id: "new", version: 0, publishState: "draft", createdAt: "", updatedAt: "" });
 
 const getTodayDate = () => new Date().toISOString().split("T")[0];
@@ -116,6 +123,9 @@ const migrateDates = (next: EditorItem, collection: CmsCollection) => {
   if (collection === "blogPosts") {
     next.body = mergeCmsBlogIntro(next.intro, next.body);
     delete next.intro;
+  }
+  if ((collection === "reports" || collection === "pressCoverage") && !next.slug) {
+    next.slug = slugify(String(next.title || "untitled"));
   }
   if (collection === "publications" || collection === "reports" || collection === "pressCoverage") {
     if (!next.date) next.date = getTodayDate();
@@ -179,7 +189,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "coverImage", label: "Cover image", kind: "asset", group: "media", accept: "image/*" },
       { key: "pdf", label: "PDF", kind: "asset", group: "media", accept: "application/pdf" },
     ],
-    create: () => ({ ...newWorkflow(), title: "Untitled report", type: "Coalition report", date: getTodayDate(), description: "", coverImage: "", pdf: null }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled report", slug: `untitled-report-${position + 1}`, type: "Coalition report", date: getTodayDate(), description: "", coverImage: "", pdf: null, previousSlugs: [] }),
   },
   pressCoverage: {
     label: "Press", singular: "press item", titleKey: "title", titleLabel: "Press headline", description: "External media coverage and announcements.",
@@ -187,7 +197,7 @@ const configs: Record<CmsCollection, CollectionConfig> = {
       { key: "title", label: "Headline" }, { key: "publication", label: "Publication", group: "sidebar" },
       { key: "date", label: "Published date", kind: "date", group: "sidebar" }, { key: "url", label: "Article URL", kind: "url" },
     ],
-    create: () => ({ ...newWorkflow(), title: "Untitled press item", publication: "", date: getTodayDate(), url: "https://" }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled press item", slug: `untitled-press-item-${position + 1}`, publication: "", date: getTodayDate(), url: "https://", previousSlugs: [] }),
   },
   members: {
     label: "Members", singular: "member", titleKey: "name", titleLabel: "Organisation name", description: "Organisations shown in the homepage Members section.",
@@ -580,7 +590,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                     <aside className="cms-editor-aside">
                       <header className="cms-inspector-header"><div><strong>Entry settings</strong><span>{isNew ? `New ${activeConfig?.singular}` : `Updated ${formatUpdatedAt(draft.updatedAt)}`}</span></div><i className={`cms-status-badge is-${itemStatus(draft)}`}>{itemStatus(draft)}</i></header>
                       {sidebarFields.length ? <section className="cms-document-details"><p className="cms-aside-label">{activeConfig?.singular} details</p><div className="cms-sidebar-fields">{sidebarFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={false} onChange={(value) => updateDraft(field.key, value)} onUpload={async () => undefined} />)}</div></section> : null}
-                      {hasSlug ? <section className="cms-settings-panel"><p className="cms-aside-label">Settings</p><label className={`cms-field${fieldErrors.slug ? " has-error" : ""}`}><span>URL slug</span><input value={String(draft.slug || "")} readOnly={!slugUnlocked} onChange={(event) => updateDraft("slug", slugify(event.target.value))} /><small>/{activeCollection === "events" ? "event?event=" : activeCollection === "publications" ? "publication?slug=" : "blog-post?post="}{String(draft.slug || "")}</small>{fieldErrors.slug ? <small className="cms-field-error">{fieldErrors.slug}</small> : null}</label>{!slugUnlocked ? <button className="cms-unlock-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" }); if (confirmed) setSlugUnlocked(true); })()}>Edit slug</button> : <p className="cms-settings-warning">Slug editing is unlocked. Save carefully.</p>}</section> : null}
+                      {hasSlug ? <section className="cms-settings-panel"><p className="cms-aside-label">Settings</p><label className={`cms-field${fieldErrors.slug ? " has-error" : ""}`}><span>URL slug</span><input value={String(draft.slug || "")} readOnly={!slugUnlocked} onChange={(event) => updateDraft("slug", slugify(event.target.value))} /><small>{collectionRouteBase[activeCollection]}/{String(draft.slug || "")}</small>{fieldErrors.slug ? <small className="cms-field-error">{fieldErrors.slug}</small> : null}</label>{!slugUnlocked ? <button className="cms-unlock-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" }); if (confirmed) setSlugUnlocked(true); })()}>Edit slug</button> : <p className="cms-settings-warning">Slug editing is unlocked. Save carefully.</p>}</section> : null}
                       {!isNew ? <section><p className="cms-aside-label">Display order</p><div className="cms-order-control"><span>Position {currentIndex + 1} of {items.length}</span><div><button onClick={() => void moveItem(-1)} disabled={currentIndex <= 0}>↑</button><button onClick={() => void moveItem(1)} disabled={currentIndex >= items.length - 1}>↓</button></div></div></section> : null}
                       <section className="cms-danger-zone"><p className="cms-aside-label">Entry actions</p><button onClick={isNew ? () => void closeEditor() : () => void deleteItem()}>{isNew ? "Discard entry" : "Delete entry"}</button></section>
                     </aside>

@@ -195,8 +195,8 @@
 
 .blog-post-body {
   display: grid;
-  grid-template-columns: minmax(160px, 200px) minmax(0, 800px);
-  gap: clamp(50px, 7vw, 112px);
+  grid-template-columns: minmax(145px, 180px) minmax(0, 820px);
+  gap: clamp(36px, 4vw, 64px);
   justify-content: center;
   padding: clamp(94px, 8vw, 150px) var(--section-content-edge)
     clamp(116px, 9vw, 176px);
@@ -345,9 +345,9 @@
 .blog-post-paragraphs blockquote {
   position: relative;
   left: 50%;
-  width: min(980px, calc(100vw - var(--section-content-edge) - var(--section-content-edge)));
+  width: min(900px, calc(100vw - var(--section-content-edge) - var(--section-content-edge)));
   margin: clamp(34px, 5vw, 58px) 0;
-  padding: clamp(28px, 3.2vw, 48px) clamp(30px, 4vw, 58px);
+  padding: clamp(28px, 3.2vw, 48px) clamp(36px, 5vw, 76px);
   color: var(--magenta);
   font-family: var(--body-font);
   font-size: clamp(22px, 2vw, 31px);
@@ -460,6 +460,7 @@
   grid-column: auto;
   min-width: 0;
   flex-direction: column;
+  overflow: visible;
   color: var(--magenta);
   background: transparent;
   box-shadow: none;
@@ -574,8 +575,8 @@
   }
 
   .blog-post-body {
-    grid-template-columns: 150px minmax(0, 1fr);
-    gap: 46px;
+    grid-template-columns: 140px minmax(0, 1fr);
+    gap: 38px;
   }
 
   .blog-related-grid {
@@ -679,6 +680,13 @@
   .blog-post-paragraphs li {
     font-size: 16px;
     line-height: 1.72;
+  }
+
+  .blog-post-paragraphs blockquote {
+    left: 0;
+    width: 100%;
+    padding: 25px 24px 27px 28px;
+    transform: none;
   }
 
   .blog-post-paragraphs figure,

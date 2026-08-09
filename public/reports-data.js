@@ -3,7 +3,6 @@ const dccReports = [];
 const createReportCard = (report) => {
   const article = document.createElement("article");
   article.className = "publication-card report-card";
-  article.classList.toggle("is-static", !report.pdf);
 
   const media = document.createElement("div");
   media.className = "publication-card-media";
@@ -31,22 +30,12 @@ const createReportCard = (report) => {
   const actions = document.createElement("div");
   actions.className = "publication-card-actions report-card-actions";
 
-  const download = document.createElement(report.pdf ? "a" : "button");
+  const download = document.createElement("a");
   download.className = "report-download-link";
-  if (report.pdf) {
-    download.href = report.pdf;
-    download.download = "";
-    download.setAttribute("aria-label", `Download ${report.title} PDF`);
-  } else {
-    download.type = "button";
-    download.disabled = true;
-    download.setAttribute(
-      "aria-label",
-      `${report.title} PDF is not available yet`,
-    );
-  }
+  download.href = `/reports/${encodeURIComponent(report.slug)}`;
+  download.setAttribute("aria-label", `View ${report.title}`);
   download.innerHTML =
-    '<span>Download PDF</span><span class="report-download-icon" aria-hidden="true">↓</span>';
+    '<span>View report</span><span class="report-download-icon" aria-hidden="true">→</span>';
 
   actions.append(download);
   body.append(meta, title, description, actions);

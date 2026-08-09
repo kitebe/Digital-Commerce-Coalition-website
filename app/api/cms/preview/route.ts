@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { isCmsAuthenticated } from "../../../../lib/cms/auth";
 import { readCmsContent } from "../../../../lib/cms/store";
 import type { CmsCollection, CmsEntry } from "../../../../lib/cms/types";
+import { getCmsEntrySlug } from "../../../legacy-pages";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,13 @@ const collections = new Set<CmsCollection>(["blogPosts", "events", "pressCoverag
 
 const previewUrl = (collection: CmsCollection, entry: CmsEntry) => {
   const id = encodeURIComponent(entry.id);
-  const slug = "slug" in entry ? encodeURIComponent(entry.slug) : "";
-  if (collection === "blogPosts") return `/blog-post?post=${slug}&cmsPreview=${id}`;
-  if (collection === "events") return `/event?event=${slug}&cmsPreview=${id}`;
-  if (collection === "publications") return "pdf" in entry && entry.pdf ? `/publication?slug=${slug}&cmsPreview=${id}` : `/publications?cmsPreview=${id}`;
-  if (collection === "reports") return `/reports?cmsPreview=${id}`;
+  const slug = encodeURIComponent(getCmsEntrySlug(entry));
+  if (collection === "blogPosts") return `/blog/${slug}?cmsPreview=${id}`;
+  if (collection === "events") return `/events/${slug}?cmsPreview=${id}`;
+  if (collection === "publications") return `/publications/${slug}?cmsPreview=${id}`;
+  if (collection === "reports") return `/reports/${slug}?cmsPreview=${id}`;
   if (collection === "members") return `/?cmsPreview=${id}#council`;
-  return `/press?cmsPreview=${id}`;
+  return `/press/${slug}?cmsPreview=${id}`;
 };
 
 export async function GET(request: Request) {

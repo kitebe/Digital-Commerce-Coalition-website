@@ -1,5 +1,7 @@
 const blogParams = new URLSearchParams(window.location.search);
-const requestedPostSlug = blogParams.get("post");
+const blogPathParts = window.location.pathname.split("/").filter(Boolean);
+const requestedPostSlug = blogParams.get("post") ||
+  (blogPathParts[0] === "blog" && blogPathParts[1] ? decodeURIComponent(blogPathParts[1]) : null);
 const selectedBlogPost =
   dccBlogPosts.find((post) => post.slug === requestedPostSlug || post.previousSlugs?.includes(requestedPostSlug)) ||
   dccBlogPosts[0];
@@ -42,7 +44,9 @@ const setBlogText = (selector, value) => {
 if (selectedBlogPost) {
   if (requestedPostSlug && requestedPostSlug !== selectedBlogPost.slug) {
     const canonical = new URL(window.location.href);
-    canonical.searchParams.set("post", selectedBlogPost.slug);
+    canonical.pathname = `/blog/${encodeURIComponent(selectedBlogPost.slug)}`;
+    canonical.searchParams.delete("post");
+    canonical.searchParams.delete("slug");
     window.history.replaceState({}, "", canonical);
   }
   document.title = `${selectedBlogPost.title} | Digital Commerce Coalition`;

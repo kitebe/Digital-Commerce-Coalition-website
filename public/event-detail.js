@@ -4,7 +4,9 @@ const allDccEvents = [
 ];
 
 const eventParams = new URLSearchParams(window.location.search);
-const requestedEventSlug = eventParams.get("event");
+const eventPathParts = window.location.pathname.split("/").filter(Boolean);
+const requestedEventSlug = eventParams.get("event") ||
+  (eventPathParts[0] === "events" && eventPathParts[1] ? decodeURIComponent(eventPathParts[1]) : null);
 const selectedDccEvent =
   allDccEvents.find((event) => event.slug === requestedEventSlug || event.previousSlugs?.includes(requestedEventSlug)) ||
   allDccEvents[0];
@@ -23,7 +25,9 @@ const setText = (selector, value) => {
 if (selectedDccEvent) {
   if (requestedEventSlug && requestedEventSlug !== selectedDccEvent.slug) {
     const canonical = new URL(window.location.href);
-    canonical.searchParams.set("event", selectedDccEvent.slug);
+    canonical.pathname = `/events/${encodeURIComponent(selectedDccEvent.slug)}`;
+    canonical.searchParams.delete("event");
+    canonical.searchParams.delete("slug");
     window.history.replaceState({}, "", canonical);
   }
   const eventDate = getEventDate(selectedDccEvent);

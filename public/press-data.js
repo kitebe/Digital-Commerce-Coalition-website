@@ -8,13 +8,11 @@ const dccPressCoverage = [];
 const createPressCard = (coverage, index) => {
   const card = document.createElement("a");
   card.className = "press-card";
-  card.href = coverage.url;
-  card.target = "_blank";
-  card.rel = "noopener noreferrer";
+  card.href = `/press/${encodeURIComponent(coverage.slug)}`;
   card.style.setProperty("--press-card-index", index);
   card.setAttribute(
     "aria-label",
-    `Open sample article “${coverage.title}” (opens in a new tab)`,
+    `Read ${coverage.title}`,
   );
 
   const publication = document.createElement("p");
@@ -40,7 +38,7 @@ const createPressCard = (coverage, index) => {
   const arrow = document.createElement("span");
   arrow.className = "press-read-more-arrow";
   arrow.setAttribute("aria-hidden", "true");
-  arrow.textContent = "↗";
+  arrow.textContent = "→";
   action.append(actionLabel, arrow);
 
   footer.append(date, action);

@@ -6,10 +6,13 @@ const legacyPages = [
   "blog-trust",
   "events",
   "event",
+  "event-page",
   "press",
+  "press-release",
   "publications",
   "publication",
   "reports",
+  "report",
 ];
 
 const nextConfig: NextConfig = {

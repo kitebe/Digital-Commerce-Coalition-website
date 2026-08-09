@@ -44,12 +44,13 @@ npm run build
 npm start
 ```
 
-Legacy URLs such as `/events.html` redirect to their clean equivalents, such as
-`/events`. Detail pages continue to accept their existing query parameters:
+Legacy URLs such as `/events.html` redirect to their clean equivalents. Content
+detail pages use collection and slug paths:
 
-- `/event?event=future-of-trusted-digital-commerce`
-- `/blog-post?post=building-trust-into-everyday-digital-commerce`
+- `/blog/building-trust-into-everyday-digital-commerce`
+- `/events/future-of-trusted-digital-commerce`
+- `/publications/example-publication`
+- `/reports/example-report`
+- `/press/example-coverage`
 
-Publication detail URLs use `/publication?slug=...`. Until a publication has a
-PDF configured in `public/publications-data.js`, its detail URL intentionally
-redirects back to `/publications`.
+Old query-parameter URLs permanently redirect to these canonical routes.

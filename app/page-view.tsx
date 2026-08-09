@@ -1,3 +1,4 @@
+import { draftMode } from "next/headers";
 import type { PageDefinition } from "./legacy-pages";
 import { LegacyRuntime } from "./legacy-runtime";
 import {
@@ -24,4 +25,3 @@ export async function PageView({ page, requestedPreviewId }: { page: PageDefinit
     </>
   );
 }
-import { draftMode } from "next/headers";

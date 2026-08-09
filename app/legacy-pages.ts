@@ -104,16 +104,100 @@ export const pages = {
 
 export type PageKey = keyof typeof pages;
 
+export const contentDetailPages = {
+  blog: {
+    collection: "blogPosts",
+    page: pages["blog-post"],
+    indexPath: "/blog",
+  },
+  events: {
+    collection: "events",
+    page: pages.event,
+    indexPath: "/events",
+  },
+  publications: {
+    collection: "publications",
+    page: pages.publication,
+    indexPath: "/publications",
+  },
+  reports: {
+    collection: "reports",
+    page: {
+      source: "content-detail.html",
+      title: "Report",
+      description: "A report from the Digital Commerce Coalition.",
+      bodyClass: "publication-detail-page content-detail-page",
+      scripts: ["report-detail-data.js", "content-detail.js", "script.js"],
+      dynamicHead: {
+        titleSelector: "#content-detail-title",
+        descriptionSelector: "#content-detail-description",
+      },
+    },
+    indexPath: "/reports",
+  },
+  press: {
+    collection: "pressCoverage",
+    page: {
+      source: "content-detail.html",
+      title: "Press",
+      description: "Press coverage of the Digital Commerce Coalition.",
+      bodyClass: "publication-detail-page content-detail-page",
+      scripts: ["press-detail-data.js", "content-detail.js", "script.js"],
+      dynamicHead: {
+        titleSelector: "#content-detail-title",
+        descriptionSelector: "#content-detail-description",
+      },
+    },
+    indexPath: "/press",
+  },
+} satisfies Record<string, { collection: CmsCollection; page: PageDefinition; indexPath: string }>;
+
+export type ContentSection = keyof typeof contentDetailPages;
+
+export const getCmsEntrySlug = (item: CmsEntry) => {
+  if ("slug" in item && typeof item.slug === "string" && item.slug.trim()) return item.slug;
+  const title = "title" in item ? String(item.title || "") : "";
+  return title.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+};
+
+export async function findCmsEntryBySlug(
+  collection: CmsCollection,
+  slug: string,
+  previewId?: string,
+) {
+  const content = await readCmsContent();
+  return (content[collection] as CmsEntry[]).find((item) => {
+    const visible = item.publishState !== "draft" || (Boolean(previewId) && item.id === previewId);
+    return visible && (getCmsEntrySlug(item) === slug || item.previousSlugs?.includes(slug));
+  });
+}
+
+export function getCmsEntryMetadata(section: ContentSection, entry: CmsEntry): Metadata {
+  const rawDescription =
+    "excerpt" in entry ? entry.excerpt :
+    "summary" in entry ? entry.summary :
+    "description" in entry ? entry.description :
+    "publication" in entry ? `${entry.publication}: ${entry.title}` : "";
+  const description = String(rawDescription || contentDetailPages[section].page.description)
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return {
+    title: "title" in entry ? entry.title : contentDetailPages[section].page.title,
+    description,
+  };
+}
+
 const routeAliases: Record<string, string> = {
   "./index.html": "/",
   "./blog.html": "/blog",
-  "./blog-post.html": "/blog-post",
-  "./blog-trust.html": "/blog-trust",
+  "./blog-post.html": "/blog",
+  "./blog-trust.html": "/blog/building-trust-into-everyday-digital-commerce",
   "./events.html": "/events",
-  "./event.html": "/event",
+  "./event.html": "/events",
   "./press.html": "/press",
   "./publications.html": "/publications",
-  "./publication.html": "/publication",
+  "./publication.html": "/publications",
   "./reports.html": "/reports",
 };
 
@@ -128,7 +212,8 @@ const managedScripts: Record<
   {
     collection: CmsCollection;
     variable: string;
-    rendererMarker: string;
+    rendererMarker?: string;
+    dataOnly?: boolean;
   }
 > = {
   "blog-data.js": {
@@ -161,6 +246,16 @@ const managedScripts: Record<
     variable: "dccMembers",
     rendererMarker: "const renderMembers",
   },
+  "report-detail-data.js": {
+    collection: "reports",
+    variable: "dccContentItems",
+    dataOnly: true,
+  },
+  "press-detail-data.js": {
+    collection: "pressCoverage",
+    variable: "dccContentItems",
+    dataOnly: true,
+  },
 };
 
 const formatExactDate = (value: string) => {
@@ -177,6 +272,23 @@ const formatMonthDate = (value: string) => {
     .format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1)));
 };
 
+const normalizePublicAssetPaths = <T,>(value: T): T => {
+  if (typeof value === "string") {
+    return value
+      .replace(/^\.\/(assets|uploads)\//, "/$1/")
+      .replace(/(["'])\.\/(assets|uploads)\//g, "$1/$2/") as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizePublicAssetPaths(item)) as T;
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, normalizePublicAssetPaths(item)]),
+    ) as T;
+  }
+  return value;
+};
+
 const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
   const {
     publishState: _publishState,
@@ -185,11 +297,12 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
     createdAt: _createdAt,
     updatedAt: _updatedAt,
     publishedAt: _publishedAt,
-    ...publicItem
+    ...rawPublicItem
   } = item;
+  const publicItem = normalizePublicAssetPaths(rawPublicItem);
   if (collection === "blogPosts") {
     const post = item as CmsContent["blogPosts"][number];
-    const bodyHtml = mergeCmsBlogIntro(post.intro, post.body);
+    const bodyHtml = normalizePublicAssetPaths(mergeCmsBlogIntro(post.intro, post.body));
     const { intro: _intro, ...blogPublicItem } = publicItem as typeof publicItem & { intro?: unknown };
     const words = bodyHtml.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
     return { ...blogPublicItem, date: formatExactDate(post.date), bodyHtml, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
@@ -203,20 +316,30 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
       day: date ? String(date.getUTCDate()) : "",
       month: date ? new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(date) : "",
       year: date ? String(date.getUTCFullYear()) : "",
-      href: `./event.html?event=${event.slug}`,
-      bodyHtml: String(event.body || ""),
+      href: `/events/${encodeURIComponent(event.slug)}`,
+      bodyHtml: normalizePublicAssetPaths(String(event.body || "")),
       description: String(event.body || "").replace(/<[^>]+>/g, ""),
     };
   }
   if (collection === "publications") {
     const publication = item as CmsContent["publications"][number];
-    return { ...publicItem, date: formatMonthDate(publication.date), bodyHtml: publication.body };
+    return { ...publicItem, date: formatMonthDate(publication.date), bodyHtml: normalizePublicAssetPaths(publication.body) };
   }
   if (collection === "reports") {
-    return { ...publicItem, date: formatMonthDate(String((publicItem as { date?: string }).date || "")) };
+    return {
+      ...publicItem,
+      slug: getCmsEntrySlug(item),
+      contentKind: "report",
+      date: formatMonthDate(String((publicItem as { date?: string }).date || "")),
+    };
   }
   if (collection === "pressCoverage") {
-    return { ...publicItem, date: formatExactDate(String((publicItem as { date?: string }).date || "")) };
+    return {
+      ...publicItem,
+      slug: getCmsEntrySlug(item),
+      contentKind: "press",
+      date: formatExactDate(String((publicItem as { date?: string }).date || "")),
+    };
   }
   return publicItem;
 };
@@ -248,21 +371,29 @@ const getPublishedContent = (
 };
 
 const getRuntimeScript = (filename: string, content: CmsContent, previewId?: string) => {
-  const source = readRuntimeSource(filename);
   const managedScript = managedScripts[filename];
-  if (!managedScript) return source;
+  if (!managedScript) return readRuntimeSource(filename);
 
+  const publicContent = getPublishedContent(
+    managedScript.collection,
+    content[managedScript.collection],
+    previewId,
+  );
+  if (managedScript.dataOnly) {
+    return `const ${managedScript.variable} = ${JSON.stringify(publicContent, null, 2)};`;
+  }
+
+  const source = readRuntimeSource(filename);
+  if (!managedScript.rendererMarker) {
+    throw new Error(`Could not find the renderer configuration for ${filename}`);
+  }
   const rendererStart = source.indexOf(managedScript.rendererMarker);
   if (rendererStart < 0) {
     throw new Error(`Could not find the renderer in ${filename}`);
   }
 
   return `const ${managedScript.variable} = ${JSON.stringify(
-    getPublishedContent(
-      managedScript.collection,
-      content[managedScript.collection],
-      previewId,
-    ),
+    publicContent,
     null,
     2,
   )};\n\n${source.slice(rendererStart)}`;

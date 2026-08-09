@@ -34,7 +34,7 @@ const createPublicationCover = (publication, compact = false) => {
 
 const createPublicationCard = (publication) => {
   const article = document.createElement("article");
-  article.className = "publication-card is-static";
+  article.className = "publication-card";
 
   const media = document.createElement("div");
   media.className = "publication-card-media";
@@ -57,16 +57,12 @@ const createPublicationCard = (publication) => {
   const actions = document.createElement("div");
   actions.className = "publication-card-actions report-card-actions";
 
-  const download = document.createElement("button");
-  download.type = "button";
+  const download = document.createElement("a");
   download.className = "report-download-link";
-  download.disabled = true;
-  download.setAttribute(
-    "aria-label",
-    `${publication.title} PDF is not available yet`,
-  );
+  download.href = `/publications/${encodeURIComponent(publication.slug)}`;
+  download.setAttribute("aria-label", `Read ${publication.title}`);
   download.innerHTML =
-    '<span>Download PDF</span><span class="report-download-icon" aria-hidden="true">↓</span>';
+    '<span>Read publication</span><span class="report-download-icon" aria-hidden="true">→</span>';
 
   actions.append(download);
   body.append(meta, title, description, actions);
@@ -90,18 +86,22 @@ const renderPublicationDetail = () => {
   if (!detail) return;
 
   const params = new URLSearchParams(window.location.search);
-  const requestedSlug = params.get("slug");
+  const pathParts = window.location.pathname.split("/").filter(Boolean);
+  const requestedSlug = params.get("slug") ||
+    (pathParts[0] === "publications" && pathParts[1] ? decodeURIComponent(pathParts[1]) : null);
   const publication = dccPublications.find(
-    (item) => (item.slug === requestedSlug || item.previousSlugs?.includes(requestedSlug)) && item.pdf,
+    (item) => item.slug === requestedSlug || item.previousSlugs?.includes(requestedSlug),
   );
   if (!publication) {
-    window.location.replace("./publications.html");
+    window.location.replace("/publications");
     return;
   }
 
   if (requestedSlug && requestedSlug !== publication.slug) {
     const canonical = new URL(window.location.href);
-    canonical.searchParams.set("slug", publication.slug);
+    canonical.pathname = `/publications/${encodeURIComponent(publication.slug)}`;
+    canonical.searchParams.delete("slug");
+    canonical.searchParams.delete("publication");
     window.history.replaceState({}, "", canonical);
   }
 
@@ -111,7 +111,7 @@ const renderPublicationDetail = () => {
     ?.setAttribute("content", publication.description);
 
   const back = document.querySelector("#publication-back-link");
-  if (back) back.href = "./publications.html";
+  if (back) back.href = "/publications";
 
   const type = document.querySelector("#publication-detail-type");
   const title = document.querySelector("#publication-detail-title");
@@ -144,16 +144,20 @@ const renderPublicationDetail = () => {
   }
   if (cover) cover.replaceChildren(createPublicationCover(publication));
   if (download) {
-    download.href = publication.pdf;
-    download.download = "";
-    download.setAttribute("aria-label", `Download ${publication.title} PDF`);
+    if (publication.pdf) {
+      download.href = publication.pdf;
+      download.download = "";
+      download.setAttribute("aria-label", `Download ${publication.title} PDF`);
+    } else {
+      download.hidden = true;
+    }
   }
 
   const related = document.querySelector("#related-publications");
   if (related) {
     related.replaceChildren(
       ...dccPublications
-        .filter((item) => item.pdf && item.slug !== publication.slug)
+        .filter((item) => item.slug !== publication.slug)
         .slice(0, 2)
         .map(createPublicationCard),
     );

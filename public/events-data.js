@@ -14,7 +14,7 @@
  *   location: "New Delhi",
  *   image: "./assets/events/event-name.jpg",
  *   imageAlt: "Participants at the event",
- *   href: "./event.html?event=event-name",
+ *   href: "/events/event-name",
  *   description: "A longer description for the internal event page.",
  *   topics: ["Topic one", "Topic two", "Topic three"],
  *   linkLabel: "Read more"

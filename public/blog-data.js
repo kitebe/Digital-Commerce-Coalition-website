@@ -3,7 +3,7 @@ const dccBlogPosts = [];
 const createBlogCard = (post, index) => {
   const article = document.createElement("a");
   article.className = "blog-card";
-  article.href = `/blog-post?post=${encodeURIComponent(post.slug)}`;
+  article.href = `/blog/${encodeURIComponent(post.slug)}`;
   article.style.setProperty("--blog-card-index", index);
 
   const imageWrap = document.createElement("div");

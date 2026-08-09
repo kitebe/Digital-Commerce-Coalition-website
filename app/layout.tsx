@@ -20,6 +20,7 @@ const stylesheets = [
   "/event-detail.css",
   "/press.css",
   "/publications.css",
+  "/content-detail.css",
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

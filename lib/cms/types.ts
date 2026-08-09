@@ -55,6 +55,7 @@ export type CmsEvent = EditorialWorkflow & {
 };
 
 export type PressCoverage = EditorialWorkflow & {
+  slug: string;
   publication: string;
   date: string;
   title: string;
@@ -77,6 +78,7 @@ export type Publication = EditorialWorkflow & {
 };
 
 export type Report = EditorialWorkflow & {
+  slug: string;
   type: string;
   date: string;
   title: string;
