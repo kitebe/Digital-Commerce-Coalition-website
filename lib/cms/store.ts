@@ -63,6 +63,21 @@ const desiredState = (action: SaveAction, current?: PublishState): PublishState 
 
 // FileCmsRepository has been permanently removed in favor of native Firebase storage.
 
+const sanitizeFirestoreData = (data: any): any => {
+  if (data === null || data === undefined) return data;
+  if (typeof data?.toDate === "function") return data.toDate().toISOString();
+  if (data instanceof Date) return data.toISOString();
+  if (Array.isArray(data)) return data.map(sanitizeFirestoreData);
+  if (typeof data === "object" && Object.getPrototypeOf(data) === Object.prototype) {
+    const res: any = {};
+    for (const [k, v] of Object.entries(data)) {
+      res[k] = sanitizeFirestoreData(v);
+    }
+    return res;
+  }
+  return data;
+};
+
 class FirebaseCmsRepository implements CmsRepository {
   async read(): Promise<CmsContent> {
     const collections: CmsCollection[] = ["blogPosts", "events", "pressCoverage", "publications", "reports", "members"];
@@ -74,7 +89,7 @@ class FirebaseCmsRepository implements CmsRepository {
       
       for (const collection of collections) {
         const snap = await db.collection(collection).get();
-        content[collection] = snap.docs.map(doc => doc.data());
+        content[collection] = snap.docs.map(doc => sanitizeFirestoreData(doc.data()));
         content[collection].sort((a: any, b: any) => {
           const orderA = typeof a._order === 'number' ? a._order : 999999;
           const orderB = typeof b._order === 'number' ? b._order : 999999;
