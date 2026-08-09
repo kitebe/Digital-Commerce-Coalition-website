@@ -7,3 +7,5 @@ npm-debug.log*
 .DS_Store
 public/uploads/*
 !public/uploads/.gitkeep
+.vercel
+.env*
