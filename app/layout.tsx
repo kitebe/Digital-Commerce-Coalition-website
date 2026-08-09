@@ -21,6 +21,7 @@ const stylesheets = [
   "/press.css",
   "/publications.css",
   "/content-detail.css",
+  "/error-pages.css",
 ];
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
