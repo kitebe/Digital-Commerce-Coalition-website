@@ -17,13 +17,17 @@
 }
 
 .blog-reading-progress {
-  position: fixed;
-  top: var(--site-header-height);
-  right: 0;
-  left: 0;
-  z-index: 22;
-  height: 4px;
+  position: absolute;
+  top: auto;
+  right: auto;
+  bottom: -3px;
+  left: 50%;
+  z-index: 1;
+  width: var(--page-shell-width);
+  height: 3px;
+  overflow: hidden;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .blog-reading-progress span {
