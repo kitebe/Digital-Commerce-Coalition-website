@@ -1429,11 +1429,26 @@ function CmsField({ field, value, error, uploading, onChange, onUpload }: { fiel
   );
 }
 
+const getGreetingForHour = (hour: number) => {
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
+
 function CmsOverview({ content, onOpen }: { content: CmsContent; onOpen: (collection: CmsCollection, id?: string) => void }) {
+  const [greeting, setGreeting] = useState("Welcome back");
   const allItems = collectionOrder.flatMap((collection) => getItems(content, collection).map((item) => ({ collection, item })));
   const total = allItems.length; const published = allItems.filter(({ item }) => item.publishState === "published").length;
   const recentItems = [...allItems].sort((left, right) => right.item.updatedAt.localeCompare(left.item.updatedAt)).slice(0, 6);
-  return <div className="cms-overview"><header className="cms-overview-header"><div><p className="cms-eyebrow">Workspace overview</p><h1>Good afternoon</h1><p>Here’s what’s happening across the Coalition website.</p></div></header><section className="cms-stats-grid" aria-label="Content status summary"><div><span>Total entries</span><strong>{total}</strong><small>Across {collectionOrder.length} collections</small></div><div><span>Published</span><strong>{published}</strong><small>Visible on the website</small></div><div><span>Drafts</span><strong>{total - published}</strong><small>Awaiting publication</small></div></section><div className="cms-section-heading"><div><h2>Collections</h2><p>Browse and manage your content types.</p></div></div><section className="cms-overview-grid" aria-label="Content collections">{collectionOrder.map((collection) => <button key={collection} onClick={() => onOpen(collection)}><span className="cms-card-letter">{configs[collection].label.charAt(0)}</span><span className="cms-card-count">{getItems(content, collection).length}</span><strong>{configs[collection].label}</strong><p>{configs[collection].description}</p><span className="cms-card-link">Manage content →</span></button>)}</section><section className="cms-recent-card"><div className="cms-section-heading"><div><h2>Recent content</h2><p>Entries across all collections.</p></div></div><div className="cms-recent-list">{recentItems.map(({ collection, item }) => <button key={item.id} onClick={() => onOpen(collection, item.id)}><span className="cms-recent-icon">{configs[collection].label.charAt(0)}</span><span><strong>{itemTitle(item as unknown as EditorItem)}</strong><small>{configs[collection].label}</small></span><i className={`cms-status-badge is-${item.publishState}`}>{item.publishState}</i><span className="cms-recent-date">{formatUpdatedAt(item.updatedAt)}</span><span>→</span></button>)}</div></section></div>;
+
+  useEffect(() => {
+    const updateGreeting = () => setGreeting(getGreetingForHour(new Date().getHours()));
+    updateGreeting();
+    const intervalId = window.setInterval(updateGreeting, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  return <div className="cms-overview"><header className="cms-overview-header"><div><p className="cms-eyebrow">Workspace overview</p><h1>{greeting}</h1><p>Here’s what’s happening across the Coalition website.</p></div></header><section className="cms-stats-grid" aria-label="Content status summary"><div><span>Total entries</span><strong>{total}</strong><small>Across {collectionOrder.length} collections</small></div><div><span>Published</span><strong>{published}</strong><small>Visible on the website</small></div><div><span>Drafts</span><strong>{total - published}</strong><small>Awaiting publication</small></div></section><div className="cms-section-heading"><div><h2>Collections</h2><p>Browse and manage your content types.</p></div></div><section className="cms-overview-grid" aria-label="Content collections">{collectionOrder.map((collection) => <button key={collection} onClick={() => onOpen(collection)}><span className="cms-card-letter">{configs[collection].label.charAt(0)}</span><span className="cms-card-count">{getItems(content, collection).length}</span><strong>{configs[collection].label}</strong><p>{configs[collection].description}</p><span className="cms-card-link">Manage content →</span></button>)}</section><section className="cms-recent-card"><div className="cms-section-heading"><div><h2>Recent content</h2><p>Entries across all collections.</p></div></div><div className="cms-recent-list">{recentItems.map(({ collection, item }) => <button key={item.id} onClick={() => onOpen(collection, item.id)}><span className="cms-recent-icon">{configs[collection].label.charAt(0)}</span><span><strong>{itemTitle(item as unknown as EditorItem)}</strong><small>{configs[collection].label}</small></span><i className={`cms-status-badge is-${item.publishState}`}>{item.publishState}</i><span className="cms-recent-date">{formatUpdatedAt(item.updatedAt)}</span><span>→</span></button>)}</div></section></div>;
 }
 
 function CmsLogin({ error }: { error: string }) {
