@@ -20,7 +20,7 @@
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
     "firebase": "^12.17.1",
-    "firebase-admin": "^14.2.0",
+    "firebase-admin": "13.6.0",
     "jose": "^6.2.8",
     "next": "16.3.0",
     "react": "19.1.1",
