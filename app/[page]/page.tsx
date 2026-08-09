@@ -12,6 +12,12 @@ export const dynamic = "force-dynamic";
 const isPageKey = (value: string): value is Exclude<PageKey, "home"> =>
   value !== "home" && value in pages;
 
+export function generateStaticParams() {
+  return Object.keys(pages)
+    .filter((page) => page !== "home")
+    .map((page) => ({ page }));
+}
+
 export async function generateMetadata({ params }: RouteProps) {
   const { page } = await params;
   return isPageKey(page) ? getMetadata(pages[page]) : {};

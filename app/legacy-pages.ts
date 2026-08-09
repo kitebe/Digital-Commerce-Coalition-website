@@ -6,7 +6,6 @@ import type { Metadata } from "next";
 import { readCmsContent } from "../lib/cms/store";
 import { mergeCmsBlogIntro } from "../lib/cms/rich-text";
 import type { CmsCollection, CmsContent, CmsEntry } from "../lib/cms/types";
-import { htmlTemplates, scriptTemplates } from "./legacy-templates";
 
 export type PageDefinition = {
   source: string;
@@ -202,13 +201,11 @@ const routeAliases: Record<string, string> = {
   "./reports.html": "/reports",
 };
 
-const readPageSource = (filename: string) => {
-  return htmlTemplates[filename] || `<!doctype html><html><body><main><section><h1>Digital Commerce Coalition</h1></section></main></body></html>`;
-};
+const readPageSource = (filename: string) =>
+  readFileSync(join(process.cwd(), "legacy-html", filename), "utf8");
 
-const readRuntimeSource = (filename: string) => {
-  return scriptTemplates[filename] || "";
-};
+const readRuntimeSource = (filename: string) =>
+  readFileSync(join(process.cwd(), "public", filename), "utf8");
 
 const managedScripts: Record<
   string,
@@ -261,18 +258,16 @@ const managedScripts: Record<
   },
 };
 
-const formatExactDate = (value?: unknown) => {
-  const str = String(value || "");
-  const match = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return str;
+const formatExactDate = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return value;
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })
     .format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
 };
 
-const formatMonthDate = (value?: unknown) => {
-  const str = String(value || "");
-  const match = str.match(/^(\d{4})-(\d{2})$/);
-  if (!match) return str;
+const formatMonthDate = (value: string) => {
+  const match = value.match(/^(\d{4})-(\d{2})$/);
+  if (!match) return value;
   return new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric", timeZone: "UTC" })
     .format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, 1)));
 };
@@ -295,7 +290,6 @@ const normalizePublicAssetPaths = <T,>(value: T): T => {
 };
 
 const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
-  if (!item) return {} as any;
   const {
     publishState: _publishState,
     id: _id,
@@ -305,32 +299,31 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
     publishedAt: _publishedAt,
     ...rawPublicItem
   } = item;
-  const publicItem = normalizePublicAssetPaths(rawPublicItem || {});
+  const publicItem = normalizePublicAssetPaths(rawPublicItem);
   if (collection === "blogPosts") {
-    const post = (item || {}) as CmsContent["blogPosts"][number];
-    const bodyHtml = normalizePublicAssetPaths(mergeCmsBlogIntro(post.intro, post.body || ""));
+    const post = item as CmsContent["blogPosts"][number];
+    const bodyHtml = normalizePublicAssetPaths(mergeCmsBlogIntro(post.intro, post.body));
     const { intro: _intro, ...blogPublicItem } = publicItem as typeof publicItem & { intro?: unknown };
     const words = bodyHtml.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
     return { ...blogPublicItem, date: formatExactDate(post.date), bodyHtml, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
   }
   if (collection === "events") {
-    const event = (item || {}) as CmsContent["events"][number];
-    const eventDateStr = String(event.eventDate || "");
-    const match = eventDateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const event = item as CmsContent["events"][number];
+    const match = event.eventDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     const date = match ? new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))) : null;
     return {
       ...publicItem,
       day: date ? String(date.getUTCDate()) : "",
       month: date ? new Intl.DateTimeFormat("en-US", { month: "long", timeZone: "UTC" }).format(date) : "",
       year: date ? String(date.getUTCFullYear()) : "",
-      href: `/events/${encodeURIComponent(getCmsEntrySlug(item))}`,
+      href: `/events/${encodeURIComponent(event.slug)}`,
       bodyHtml: normalizePublicAssetPaths(String(event.body || "")),
       description: String(event.body || "").replace(/<[^>]+>/g, ""),
     };
   }
   if (collection === "publications") {
-    const publication = (item || {}) as CmsContent["publications"][number];
-    return { ...publicItem, date: formatMonthDate(publication.date), bodyHtml: normalizePublicAssetPaths(publication.body || "") };
+    const publication = item as CmsContent["publications"][number];
+    return { ...publicItem, date: formatMonthDate(publication.date), bodyHtml: normalizePublicAssetPaths(publication.body) };
   }
   if (collection === "reports") {
     return {
@@ -356,7 +349,6 @@ const getPublishedContent = (
   value: CmsContent[CmsCollection],
   previewId?: string,
 ) => {
-  const safeValue = Array.isArray(value) ? value : [];
   const isPublished = (item: unknown) =>
     !item ||
     typeof item !== "object" ||
@@ -365,17 +357,17 @@ const getPublishedContent = (
     (Boolean(previewId) && (item as { id?: string }).id === previewId);
 
   if (collection === "events") {
-    const events = (safeValue as CmsContent["events"]).filter(isPublished);
+    const events = (value as CmsContent["events"]).filter(isPublished);
     const todayParts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
     const part = (type: Intl.DateTimeFormatPartTypes) => todayParts.find((item) => item.type === type)?.value || "";
     const today = `${part("year")}-${part("month")}-${part("day")}`;
     return {
-      upcoming: events.filter((event) => String(event?.eventDate || "") >= today).map((event) => toPublicItem(collection, event)),
-      past: events.filter((event) => String(event?.eventDate || "") < today).map((event) => toPublicItem(collection, event)),
+      upcoming: events.filter((event) => event.eventDate >= today).map((event) => toPublicItem(collection, event)),
+      past: events.filter((event) => event.eventDate < today).map((event) => toPublicItem(collection, event)),
     };
   }
 
-  return (safeValue as CmsEntry[]).filter(isPublished).map((item) => toPublicItem(collection, item));
+  return (value as CmsEntry[]).filter(isPublished).map((item) => toPublicItem(collection, item));
 };
 
 const getRuntimeScript = (filename: string, content: CmsContent, previewId?: string) => {
@@ -393,11 +385,11 @@ const getRuntimeScript = (filename: string, content: CmsContent, previewId?: str
 
   const source = readRuntimeSource(filename);
   if (!managedScript.rendererMarker) {
-    return `const ${managedScript.variable} = ${JSON.stringify(publicContent, null, 2)};\n\n${source}`;
+    throw new Error(`Could not find the renderer configuration for ${filename}`);
   }
   const rendererStart = source.indexOf(managedScript.rendererMarker);
   if (rendererStart < 0) {
-    return `const ${managedScript.variable} = ${JSON.stringify(publicContent, null, 2)};\n\n${source}`;
+    throw new Error(`Could not find the renderer in ${filename}`);
   }
 
   return `const ${managedScript.variable} = ${JSON.stringify(
@@ -408,42 +400,32 @@ const getRuntimeScript = (filename: string, content: CmsContent, previewId?: str
 };
 
 export function getPageMarkup(page: PageDefinition) {
-  try {
-    const source = readPageSource(page.source);
-    const body = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1];
+  const source = readPageSource(page.source);
+  const body = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1];
 
-    if (!body) {
-      return `<main><section style="padding:40px;text-align:center;"><h1>Digital Commerce Coalition</h1></section></main>`;
-    }
-
-    let markup = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-
-    for (const [legacyUrl, nextUrl] of Object.entries(routeAliases)) {
-      markup = markup.replaceAll(legacyUrl, nextUrl);
-    }
-
-    return markup.replaceAll('"./assets/', '"/assets/');
-  } catch (error) {
-    console.error("[getPageMarkup] Error:", error);
-    return `<main><section style="padding:40px;text-align:center;"><h1>Digital Commerce Coalition</h1></section></main>`;
+  if (!body) {
+    throw new Error(`Could not find a body element in ${page.source}`);
   }
+
+  let markup = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+  for (const [legacyUrl, nextUrl] of Object.entries(routeAliases)) {
+    markup = markup.replaceAll(legacyUrl, nextUrl);
+  }
+
+  return markup.replaceAll('"./assets/', '"/assets/');
 }
 
 export async function getPageRuntime(page: PageDefinition, previewId?: string) {
-  try {
-    const content = page.scripts.some((script) => managedScripts[script])
-      ? await readCmsContent()
-      : null;
-    const source = page.scripts
-      .map((script) =>
-        content ? getRuntimeScript(script, content, previewId) : readRuntimeSource(script),
-      )
-      .join("\n\n");
-    return `(function () {\n${source}\n})();`.replaceAll("</script", "<\\/script");
-  } catch (error) {
-    console.error("[getPageRuntime] Error:", error);
-    return `(function () {})();`;
-  }
+  const content = page.scripts.some((script) => managedScripts[script])
+    ? await readCmsContent()
+    : null;
+  const source = page.scripts
+    .map((script) =>
+      content ? getRuntimeScript(script, content, previewId) : readRuntimeSource(script),
+    )
+    .join("\n\n");
+  return `(function () {\n${source}\n})();`.replaceAll("</script", "<\\/script");
 }
 
 export function getBodyClassScript(bodyClass: string) {

@@ -63,44 +63,25 @@ const desiredState = (action: SaveAction, current?: PublishState): PublishState 
 
 // FileCmsRepository has been permanently removed in favor of native Firebase storage.
 
-const sanitizeFirestoreData = (data: any): any => {
-  if (data === null || data === undefined) return data;
-  if (typeof data?.toDate === "function") return data.toDate().toISOString();
-  if (data instanceof Date) return data.toISOString();
-  if (Array.isArray(data)) return data.map(sanitizeFirestoreData);
-  if (typeof data === "object" && Object.getPrototypeOf(data) === Object.prototype) {
-    const res: any = {};
-    for (const [k, v] of Object.entries(data)) {
-      res[k] = sanitizeFirestoreData(v);
-    }
-    return res;
-  }
-  return data;
-};
-
 class FirebaseCmsRepository implements CmsRepository {
   async read(): Promise<CmsContent> {
+    const db = getFirestoreDb();
+    if (!db) throw new Error("Firebase Firestore not initialized.");
+    
     const collections: CmsCollection[] = ["blogPosts", "events", "pressCoverage", "publications", "reports", "members"];
-    const content: any = { schemaVersion: 2, blogPosts: [], events: [], pressCoverage: [], publications: [], reports: [], members: [] };
-
-    try {
-      const db = getFirestoreDb();
-      if (!db) return content as CmsContent;
-      
-      for (const collection of collections) {
-        const snap = await db.collection(collection).get();
-        content[collection] = snap.docs.map(doc => sanitizeFirestoreData(doc.data()));
-        content[collection].sort((a: any, b: any) => {
-          const orderA = typeof a._order === 'number' ? a._order : 999999;
-          const orderB = typeof b._order === 'number' ? b._order : 999999;
-          return orderA - orderB;
-        });
-      }
-      return content as CmsContent;
-    } catch (error) {
-      console.error("[CMS Store] Error reading from Firestore:", error);
-      return content as CmsContent;
+    const content: any = { schemaVersion: 2 };
+    
+    for (const collection of collections) {
+      const snap = await db.collection(collection).get();
+      content[collection] = snap.docs.map(doc => doc.data());
+      content[collection].sort((a: any, b: any) => {
+        const orderA = typeof a._order === 'number' ? a._order : 999999;
+        const orderB = typeof b._order === 'number' ? b._order : 999999;
+        return orderA - orderB;
+      });
     }
+    
+    return content as CmsContent;
   }
 
   async create(collection: CmsCollection, value: Record<string, unknown>, action: SaveAction): Promise<CmsContent> {

@@ -8,13 +8,8 @@ import {
 } from "./legacy-pages";
 
 export async function PageView({ page, requestedPreviewId }: { page: PageDefinition; requestedPreviewId?: string }) {
-  let previewId: string | undefined = undefined;
-  try {
-    const preview = await draftMode();
-    if (preview.isEnabled) previewId = requestedPreviewId;
-  } catch {
-    // Ignore draftMode resolution errors
-  }
+  const preview = await draftMode();
+  const previewId = preview.isEnabled ? requestedPreviewId : undefined;
   const markup = getPageMarkup(page);
   const runtime = await getPageRuntime(page, previewId);
 

@@ -17,9 +17,6 @@ const legacyPages = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  outputFileTracingIncludes: {
-    "/*": ["./legacy-html/**/*", "./public/**/*"],
-  },
   async redirects() {
     return [
       {
