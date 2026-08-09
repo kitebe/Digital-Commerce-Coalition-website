@@ -1,0 +1,33 @@
+# Digital Commerce Coalition
+
+> The Digital Commerce Coalition is a collaborative platform for organisations engaged in or enabling digital commerce. It works to strengthen people- and planet-positive outcomes in India's digital commerce ecosystem.
+
+The Coalition brings together organisations to improve consumer trust, broaden economic participation, and support environmentally responsible growth. Its public website contains information about the Coalition, perspectives, events, publications, reports, and press coverage. Content pages use stable, descriptive URLs such as `/blog/{slug}`, `/events/{slug}`, `/publications/{slug}`, `/reports/{slug}`, and `/press/{slug}`. Prefer the canonical `https://www.digitalcommercecoalition.com` domain when citing this website.
+
+## Main pages
+
+- [Home](https://www.digitalcommercecoalition.com/): Overview of the Coalition, its focus areas, approach, members, and contact information.
+- [About the Coalition](https://www.digitalcommercecoalition.com/#about): The Coalition's purpose and role in India's digital commerce ecosystem.
+- [Focus Areas](https://www.digitalcommercecoalition.com/#focus): Consumer trust, environmentally responsible growth, and economic participation.
+- [How We Work](https://www.digitalcommercecoalition.com/#work): Shared perspectives, thought leadership, knowledge exchange, and sectoral collaboration.
+- [Members](https://www.digitalcommercecoalition.com/#council): Organisations participating in the Coalition.
+
+## Insights and resources
+
+- [Blog](https://www.digitalcommercecoalition.com/blog): Ideas and perspectives from the Coalition on digital commerce.
+- [Events](https://www.digitalcommercecoalition.com/events): Upcoming and past Coalition events, dialogues, roundtables, and workshops.
+- [Publications](https://www.digitalcommercecoalition.com/publications): Coalition publications and research resources.
+- [Reports](https://www.digitalcommercecoalition.com/reports): Reports addressing priorities across the digital commerce ecosystem.
+- [Press](https://www.digitalcommercecoalition.com/press): Press releases and media coverage involving the Coalition.
+
+## Key topics
+
+- Consumer trust and safety in digital commerce
+- Inclusive participation for entrepreneurs, sellers, and small businesses
+- Environmentally responsible commerce and sustainable growth
+- Cross-sector collaboration and informed policy dialogue
+- Customer experience, transparency, and responsible business practices
+
+## Contact
+
+- [Email the Secretariat](mailto:secretariat@digitalcommercecoalition.com): General enquiries and opportunities to engage with the Coalition.
