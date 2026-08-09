@@ -397,11 +397,11 @@ const getRuntimeScript = (filename: string, content: CmsContent, previewId?: str
 
   const source = readRuntimeSource(filename);
   if (!managedScript.rendererMarker) {
-    throw new Error(`Could not find the renderer configuration for ${filename}`);
+    return `const ${managedScript.variable} = ${JSON.stringify(publicContent, null, 2)};\n\n${source}`;
   }
   const rendererStart = source.indexOf(managedScript.rendererMarker);
   if (rendererStart < 0) {
-    throw new Error(`Could not find the renderer in ${filename}`);
+    return `const ${managedScript.variable} = ${JSON.stringify(publicContent, null, 2)};\n\n${source}`;
   }
 
   return `const ${managedScript.variable} = ${JSON.stringify(
@@ -412,32 +412,42 @@ const getRuntimeScript = (filename: string, content: CmsContent, previewId?: str
 };
 
 export function getPageMarkup(page: PageDefinition) {
-  const source = readPageSource(page.source);
-  const body = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1];
+  try {
+    const source = readPageSource(page.source);
+    const body = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1];
 
-  if (!body) {
-    throw new Error(`Could not find a body element in ${page.source}`);
+    if (!body) {
+      return `<main><section style="padding:40px;text-align:center;"><h1>Digital Commerce Coalition</h1></section></main>`;
+    }
+
+    let markup = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+
+    for (const [legacyUrl, nextUrl] of Object.entries(routeAliases)) {
+      markup = markup.replaceAll(legacyUrl, nextUrl);
+    }
+
+    return markup.replaceAll('"./assets/', '"/assets/');
+  } catch (error) {
+    console.error("[getPageMarkup] Error:", error);
+    return `<main><section style="padding:40px;text-align:center;"><h1>Digital Commerce Coalition</h1></section></main>`;
   }
-
-  let markup = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
-
-  for (const [legacyUrl, nextUrl] of Object.entries(routeAliases)) {
-    markup = markup.replaceAll(legacyUrl, nextUrl);
-  }
-
-  return markup.replaceAll('"./assets/', '"/assets/');
 }
 
 export async function getPageRuntime(page: PageDefinition, previewId?: string) {
-  const content = page.scripts.some((script) => managedScripts[script])
-    ? await readCmsContent()
-    : null;
-  const source = page.scripts
-    .map((script) =>
-      content ? getRuntimeScript(script, content, previewId) : readRuntimeSource(script),
-    )
-    .join("\n\n");
-  return `(function () {\n${source}\n})();`.replaceAll("</script", "<\\/script");
+  try {
+    const content = page.scripts.some((script) => managedScripts[script])
+      ? await readCmsContent()
+      : null;
+    const source = page.scripts
+      .map((script) =>
+        content ? getRuntimeScript(script, content, previewId) : readRuntimeSource(script),
+      )
+      .join("\n\n");
+    return `(function () {\n${source}\n})();`.replaceAll("</script", "<\\/script");
+  } catch (error) {
+    console.error("[getPageRuntime] Error:", error);
+    return `(function () {})();`;
+  }
 }
 
 export function getBodyClassScript(bodyClass: string) {
