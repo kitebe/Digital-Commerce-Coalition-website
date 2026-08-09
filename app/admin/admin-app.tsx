@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
+import Image from "@tiptap/extension-image";
+import { TableKit } from "@tiptap/extension-table";
+import StarterKit from "@tiptap/starter-kit";
 import type { CmsCollection, CmsContent, CmsEntry } from "../../lib/cms/types";
+import { cmsRichTextToHtml, mergeCmsBlogIntro } from "../../lib/cms/rich-text";
 import { getClientAuth } from "../../lib/cms/firebase-client";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
@@ -13,6 +19,93 @@ type Field = { key: string; label: string; kind?: FieldKind; group?: "content" |
 type CollectionConfig = { label: string; singular: string; titleKey: "title" | "name"; titleLabel: string; description: string; fields: Field[]; create: (position: number) => EditorItem };
 type SaveAction = "save-draft" | "publish" | "save-published" | "unpublish";
 type SaveStatus = "idle" | "saving" | "saved" | "error";
+type DialogTone = "default" | "danger";
+type ConfirmDialogOptions = { title: string; message: string; confirmLabel?: string; cancelLabel?: string; tone?: DialogTone };
+type PromptDialogOptions = ConfirmDialogOptions & { inputLabel: string; initialValue?: string; placeholder?: string; allowEmpty?: boolean };
+type AdminDialogState = (ConfirmDialogOptions & { kind: "confirm" }) | (PromptDialogOptions & { kind: "prompt" });
+type AdminDialogApi = {
+  confirm: (options: ConfirmDialogOptions) => Promise<boolean>;
+  prompt: (options: PromptDialogOptions) => Promise<string | null>;
+};
+
+const AdminDialogContext = createContext<AdminDialogApi | null>(null);
+
+const useAdminDialog = () => {
+  const context = useContext(AdminDialogContext);
+  if (!context) throw new Error("Admin dialogs must be used inside AdminDialogProvider.");
+  return context;
+};
+
+function AdminDialogProvider({ children }: { children: ReactNode }) {
+  const [dialog, setDialog] = useState<AdminDialogState | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const resolver = useRef<((value: boolean | string | null) => void) | null>(null);
+
+  const settle = useCallback((value: boolean | string | null) => {
+    resolver.current?.(value);
+    resolver.current = null;
+    setDialog(null);
+  }, []);
+
+  const confirm = useCallback((options: ConfirmDialogOptions) => new Promise<boolean>((resolve) => {
+    resolver.current = resolve as (value: boolean | string | null) => void;
+    setInputValue("");
+    setDialog({ ...options, kind: "confirm" });
+  }), []);
+
+  const prompt = useCallback((options: PromptDialogOptions) => new Promise<string | null>((resolve) => {
+    resolver.current = resolve as (value: boolean | string | null) => void;
+    setInputValue(options.initialValue || "");
+    setDialog({ ...options, kind: "prompt" });
+  }), []);
+
+  useEffect(() => {
+    if (!dialog) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") settle(dialog.kind === "confirm" ? false : null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [dialog, settle]);
+
+  const submitDialog = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!dialog) return;
+    if (dialog.kind === "prompt") {
+      if (!dialog.allowEmpty && !inputValue.trim()) return;
+      settle(inputValue);
+      return;
+    }
+    settle(true);
+  };
+
+  return (
+    <AdminDialogContext.Provider value={{ confirm, prompt }}>
+      {children}
+      {dialog ? (
+        <div className="cms-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) settle(dialog.kind === "confirm" ? false : null); }}>
+          <form className={`cms-dialog is-${dialog.tone || "default"}`} role="alertdialog" aria-modal="true" aria-labelledby="cms-dialog-title" aria-describedby="cms-dialog-message" onSubmit={submitDialog}>
+            <div className="cms-dialog-icon" aria-hidden="true">{dialog.tone === "danger" ? "!" : "DCC"}</div>
+            <div className="cms-dialog-copy">
+              <h2 id="cms-dialog-title">{dialog.title}</h2>
+              <p id="cms-dialog-message">{dialog.message}</p>
+            </div>
+            {dialog.kind === "prompt" ? (
+              <label className="cms-dialog-field">
+                <span>{dialog.inputLabel}</span>
+                <input autoFocus value={inputValue} placeholder={dialog.placeholder} onChange={(event) => setInputValue(event.target.value)} />
+              </label>
+            ) : null}
+            <div className="cms-dialog-actions">
+              <button type="button" className="cms-dialog-cancel" onClick={() => settle(dialog.kind === "confirm" ? false : null)}>{dialog.cancelLabel || "Cancel"}</button>
+              <button type="submit" className="cms-dialog-confirm" autoFocus={dialog.kind === "confirm"} disabled={dialog.kind === "prompt" && !dialog.allowEmpty && !inputValue.trim()}>{dialog.confirmLabel || "Confirm"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+    </AdminDialogContext.Provider>
+  );
+}
 
 const collectionOrder: CmsCollection[] = ["blogPosts", "events", "publications", "reports", "pressCoverage", "members"];
 const slugify = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -20,6 +113,10 @@ const newWorkflow = () => ({ id: "new", version: 0, publishState: "draft", creat
 
 const getTodayDate = () => new Date().toISOString().split("T")[0];
 const migrateDates = (next: EditorItem, collection: CmsCollection) => {
+  if (collection === "blogPosts") {
+    next.body = mergeCmsBlogIntro(next.intro, next.body);
+    delete next.intro;
+  }
   if (collection === "publications" || collection === "reports" || collection === "pressCoverage") {
     if (!next.date) next.date = getTodayDate();
     else if (String(next.date).length === 7) next.date = `${next.date}-01`;
@@ -36,13 +133,12 @@ const configs: Record<CmsCollection, CollectionConfig> = {
     fields: [
       { key: "title", label: "Title" }, { key: "date", label: "Published date", kind: "date", group: "sidebar" },
       { key: "category", label: "Category", group: "sidebar" }, { key: "author", label: "Author", group: "sidebar" },
-      { key: "excerpt", label: "Excerpt", kind: "textarea" }, { key: "intro", label: "Lead paragraph", kind: "textarea" },
+      { key: "excerpt", label: "Excerpt", kind: "textarea" },
       { key: "body", label: "Article body", kind: "textarea", help: "Use headings, lists, images, tables, and video to structure the story." },
-      { key: "takeaways", label: "Key takeaways", kind: "repeater", help: "One takeaway per line." },
       { key: "image", label: "Feature image", kind: "asset", group: "media", accept: "image/*" },
       { key: "imageAlt", label: "Feature image description", group: "media" },
     ],
-    create: (position) => ({ ...newWorkflow(), title: "Untitled article", slug: `untitled-article-${position + 1}`, date: getTodayDate(), category: "Coalition perspectives", author: "Digital Commerce Coalition", excerpt: "", intro: "", body: "", takeaways: [], image: "", imageAlt: "", previousSlugs: [] }),
+    create: (position) => ({ ...newWorkflow(), title: "Untitled article", slug: `untitled-article-${position + 1}`, date: getTodayDate(), category: "Coalition perspectives", author: "Digital Commerce Coalition", excerpt: "", body: "", takeaways: [], image: "", imageAlt: "", previousSlugs: [] }),
   },
   events: {
     label: "Events", singular: "event", titleKey: "title", titleLabel: "Event title", description: "Upcoming and past Coalition convenings.",
@@ -122,8 +218,13 @@ const formatUpdatedAt = (value: unknown) => {
 };
 const snapshot = (item: EditorItem | null) => item ? JSON.stringify(item) : "";
 
-export function AdminApp({ configured, authenticated, initialContent, loginError }: AdminAppProps) {
+export function AdminApp(props: AdminAppProps) {
+  return <AdminDialogProvider><AdminAppContent {...props} /></AdminDialogProvider>;
+}
+
+function AdminAppContent({ configured, authenticated, initialContent, loginError }: AdminAppProps) {
   const router = useRouter();
+  const dialog = useAdminDialog();
   const handleSignOut = async () => {
     const auth = getClientAuth();
     if (auth) {
@@ -207,10 +308,16 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
     }
   }, [toast]);
 
-  const canLeaveEditor = () => !isDirty || window.confirm("Discard your unsaved changes?");
+  const canLeaveEditor = async () => !isDirty || dialog.confirm({
+    title: "Discard unsaved changes?",
+    message: "Your latest edits have not been saved and will be permanently lost.",
+    confirmLabel: "Discard changes",
+    tone: "danger",
+  });
   const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); };
-  const selectCollection = (collection: CmsCollection, id?: string) => {
-    if (!canLeaveEditor()) return;
+  const closeEditor = async () => { if (await canLeaveEditor()) resetEditor(); };
+  const selectCollection = async (collection: CmsCollection, id?: string) => {
+    if (!(await canLeaveEditor())) return;
     setActiveCollection(collection); setShowUsers(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
     if (id && content) {
       const item = getItems(content, collection).find((entry) => entry.id === id);
@@ -266,7 +373,14 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
     setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(true);
   };
   const deleteItem = async () => {
-    if (!activeCollection || !draft || isNew || !window.confirm(`Delete “${itemTitle(draft)}”? This cannot be undone.`)) return;
+    if (!activeCollection || !draft || isNew) return;
+    const confirmed = await dialog.confirm({
+      title: "Delete this entry?",
+      message: `“${itemTitle(draft)}” will be permanently removed. This action cannot be undone.`,
+      confirmLabel: "Delete entry",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     setStatus("saving");
     const response = await fetch("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: selectedId, version: draft.version }) });
     const result = await parseResponse(response);
@@ -297,7 +411,14 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   };
 
   const deleteItemFromList = async (item: CmsEntry) => {
-    if (!activeCollection || !window.confirm(`Delete “${itemTitle(item as unknown as EditorItem)}”? This cannot be undone.`)) return;
+    if (!activeCollection) return;
+    const confirmed = await dialog.confirm({
+      title: "Delete this entry?",
+      message: `“${itemTitle(item as unknown as EditorItem)}” will be permanently removed. This action cannot be undone.`,
+      confirmLabel: "Delete entry",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     const response = await fetch("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: item.id, version: item.version }) });
     const result = await parseResponse(response);
     if (!response.ok || !result.content) { setToast({ message: result.error || "Could not delete this entry.", type: "error" }); return; }
@@ -333,9 +454,9 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
       <aside className="cms-sidebar">
         <a className="cms-brand" href="/admin" aria-label="Digital Commerce Coalition CMS" style={{ padding: "6px 2px 0", marginBottom: "44px" }}><img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" style={{ height: "48px", width: "auto", maxWidth: "205px", objectFit: "contain" }} /></a>
         <nav className="cms-nav" aria-label="CMS sections">
-          <button className={!activeCollection && !showUsers ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
-          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
-          <button className={showUsers ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setShowUsers(true); setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
+          <button className={!activeCollection && !showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); resetEditor(); } })()}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
+          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers ? "is-active" : ""} onClick={() => void selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
+          <button className={showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowUsers(true); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
         </nav>
         <div className="cms-sidebar-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 10px' }}>
@@ -402,22 +523,30 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
         {draft && activeCollection !== "members" ? (
               <section className="cms-editor-view">
             <header className="cms-editor-header">
-              <div className="cms-editor-heading"><button className="cms-back-button" onClick={() => { if (canLeaveEditor()) resetEditor(); }} aria-label={`Back to ${activeConfig?.label}`}>←</button><div className="cms-editor-title-area"><p><button onClick={() => { if (canLeaveEditor()) resetEditor(); }}>{activeConfig?.label}</button><span>/</span>{isNew ? "New" : "Edit"}</p><label className={`cms-editor-title-field${fieldErrors[titleKey] ? " has-error" : ""}`}><span>{activeConfig?.titleLabel}</span><input value={String(draft[titleKey] || "")} placeholder={`Add ${activeConfig?.titleLabel.toLowerCase()}`} onChange={(event) => updateDraft(titleKey, event.target.value)} />{fieldErrors[titleKey] ? <small className="cms-field-error">{fieldErrors[titleKey]}</small> : null}</label></div></div>
+              <div className="cms-editor-heading"><button className="cms-back-button" onClick={() => void closeEditor()} aria-label={`Back to ${activeConfig?.label}`}>←</button><div className="cms-editor-title-area"><p><button onClick={() => void closeEditor()}>{activeConfig?.label}</button><span>/</span>{isNew ? "New" : "Edit"}</p><label className={`cms-editor-title-field${fieldErrors[titleKey] ? " has-error" : ""}`}><span>{activeConfig?.titleLabel}</span><input value={String(draft[titleKey] || "")} placeholder={`Add ${activeConfig?.titleLabel.toLowerCase()}`} onChange={(event) => updateDraft(titleKey, event.target.value)} />{fieldErrors[titleKey] ? <small className="cms-field-error">{fieldErrors[titleKey]}</small> : null}</label></div></div>
               <div className="cms-editor-header-actions">
-                {activeCollection === "events" || activeCollection === "publications" || activeCollection === "reports" ? (
+                {activeCollection === "blogPosts" || activeCollection === "events" || activeCollection === "publications" || activeCollection === "reports" ? (
                   <div className="cms-view-mode-toggle">
                     <button type="button" className={viewMode === "visual" ? "is-active" : ""} onClick={() => setViewMode("visual")}>Live Visual</button>
                     <button type="button" className={viewMode === "form" ? "is-active" : ""} onClick={() => setViewMode("form")}>Form</button>
                   </div>
                 ) : null}
                 {!isNew ? <a className="cms-preview-button" href={`/api/cms/preview?collection=${activeCollection}&id=${selectedId}`} target="_blank" rel="noreferrer">Preview ↗</a> : null}
-                <button type="button" className="cms-danger-top-button" onClick={isNew ? () => { if (canLeaveEditor()) resetEditor(); } : () => void deleteItem()}>{isNew ? "Discard" : "Delete"}</button>
-                {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving"}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving"}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => { if (window.confirm("Unpublish this entry and move it to drafts?")) void saveItem("unpublish"); }} disabled={status === "saving"}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
+                <button type="button" className="cms-danger-top-button" onClick={isNew ? () => void closeEditor() : () => void deleteItem()}>{isNew ? "Discard" : "Delete"}</button>
+                {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving"}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving"}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Unpublish this entry?", message: "The entry will be removed from the public website and returned to drafts.", confirmLabel: "Unpublish" }); if (confirmed) await saveItem("unpublish"); })()} disabled={status === "saving"}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
               </div>
             </header>
             <div className={`cms-editor-notice is-${status}`} role="status">{Object.keys(fieldErrors).length ? `Fix ${Object.keys(fieldErrors).length} highlighted field${Object.keys(fieldErrors).length === 1 ? "" : "s"}.` : (isDirty ? "Unsaved changes" : itemStatus(draft) === "published" ? "This entry is live on the website." : "This entry is only visible in the CMS.")}</div>
             
-            {activeCollection === "events" && viewMode === "visual" ? (
+            {activeCollection === "blogPosts" && viewMode === "visual" ? (
+              <VisualBlogEditor
+                draft={draft}
+                updateDraft={updateDraft}
+                uploadFile={uploadFile}
+                uploadingField={uploadingField}
+                fieldErrors={fieldErrors}
+              />
+            ) : activeCollection === "events" && viewMode === "visual" ? (
               <VisualEventEditor
                 draft={draft}
                 updateDraft={updateDraft}
@@ -451,9 +580,9 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
                     <aside className="cms-editor-aside">
                       <header className="cms-inspector-header"><div><strong>Entry settings</strong><span>{isNew ? `New ${activeConfig?.singular}` : `Updated ${formatUpdatedAt(draft.updatedAt)}`}</span></div><i className={`cms-status-badge is-${itemStatus(draft)}`}>{itemStatus(draft)}</i></header>
                       {sidebarFields.length ? <section className="cms-document-details"><p className="cms-aside-label">{activeConfig?.singular} details</p><div className="cms-sidebar-fields">{sidebarFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={false} onChange={(value) => updateDraft(field.key, value)} onUpload={async () => undefined} />)}</div></section> : null}
-                      {hasSlug ? <section className="cms-settings-panel"><p className="cms-aside-label">Settings</p><label className={`cms-field${fieldErrors.slug ? " has-error" : ""}`}><span>URL slug</span><input value={String(draft.slug || "")} readOnly={!slugUnlocked} onChange={(event) => updateDraft("slug", slugify(event.target.value))} /><small>/{activeCollection === "events" ? "event?event=" : activeCollection === "publications" ? "publication?slug=" : "blog-post?post="}{String(draft.slug || "")}</small>{fieldErrors.slug ? <small className="cms-field-error">{fieldErrors.slug}</small> : null}</label>{!slugUnlocked ? <button className="cms-unlock-button" onClick={() => { if (window.confirm("Changing a published URL can affect shared links. The previous URL will continue to resolve.")) setSlugUnlocked(true); }}>Edit slug</button> : <p className="cms-settings-warning">Slug editing is unlocked. Save carefully.</p>}</section> : null}
+                      {hasSlug ? <section className="cms-settings-panel"><p className="cms-aside-label">Settings</p><label className={`cms-field${fieldErrors.slug ? " has-error" : ""}`}><span>URL slug</span><input value={String(draft.slug || "")} readOnly={!slugUnlocked} onChange={(event) => updateDraft("slug", slugify(event.target.value))} /><small>/{activeCollection === "events" ? "event?event=" : activeCollection === "publications" ? "publication?slug=" : "blog-post?post="}{String(draft.slug || "")}</small>{fieldErrors.slug ? <small className="cms-field-error">{fieldErrors.slug}</small> : null}</label>{!slugUnlocked ? <button className="cms-unlock-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" }); if (confirmed) setSlugUnlocked(true); })()}>Edit slug</button> : <p className="cms-settings-warning">Slug editing is unlocked. Save carefully.</p>}</section> : null}
                       {!isNew ? <section><p className="cms-aside-label">Display order</p><div className="cms-order-control"><span>Position {currentIndex + 1} of {items.length}</span><div><button onClick={() => void moveItem(-1)} disabled={currentIndex <= 0}>↑</button><button onClick={() => void moveItem(1)} disabled={currentIndex >= items.length - 1}>↓</button></div></div></section> : null}
-                      <section className="cms-danger-zone"><p className="cms-aside-label">Entry actions</p><button onClick={isNew ? () => { if (canLeaveEditor()) resetEditor(); } : () => void deleteItem()}>{isNew ? "Discard entry" : "Delete entry"}</button></section>
+                      <section className="cms-danger-zone"><p className="cms-aside-label">Entry actions</p><button onClick={isNew ? () => void closeEditor() : () => void deleteItem()}>{isNew ? "Discard entry" : "Delete entry"}</button></section>
                     </aside>
                   ) : null}
                 </div>
@@ -462,17 +591,17 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
           ) : null}
             
             {draft && activeCollection === "members" ? (
-              <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }} onClick={() => { if (canLeaveEditor()) resetEditor(); }}>
+              <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.4)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }} onClick={() => void closeEditor()}>
                 <div style={{ width: "100%", maxWidth: "480px", background: "#fff", borderRadius: "12px", boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)", overflow: "hidden", display: "flex", flexDirection: "column", maxHeight: "90vh", pointerEvents: "auto" }} onClick={(e) => e.stopPropagation()}>
                   <header style={{ padding: "20px 24px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0, color: "#0f172a" }}>{isNew ? "Add new member" : "Edit member"}</h2>
-                    <button onClick={() => { if (canLeaveEditor()) resetEditor(); }} style={{ background: "transparent", border: 0, fontSize: "20px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "4px" }}>×</button>
+                    <button onClick={() => void closeEditor()} style={{ background: "transparent", border: 0, fontSize: "20px", cursor: "pointer", color: "#64748b", display: "flex", alignItems: "center", justifyContent: "center", width: "32px", height: "32px", borderRadius: "4px" }}>×</button>
                   </header>
                   <div style={{ padding: "24px", overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: "24px" }}>
                     {activeConfig?.fields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={uploadingField === field.key} onChange={(value) => updateDraft(field.key, value)} onUpload={async (file) => { const url = await uploadFile(file, field.key); if (url) updateDraft(field.key, url); return url; }} />)}
                   </div>
                   <footer style={{ padding: "16px 24px", borderTop: "1px solid #e2e8f0", background: "#f8fafc", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
-                    <button onClick={() => { if (canLeaveEditor()) resetEditor(); }} style={{ padding: "8px 16px", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontWeight: 500, cursor: "pointer", fontSize: "13px" }}>Cancel</button>
+                    <button onClick={() => void closeEditor()} style={{ padding: "8px 16px", borderRadius: "6px", border: "1px solid #cbd5e1", background: "#fff", color: "#475569", fontWeight: 500, cursor: "pointer", fontSize: "13px" }}>Cancel</button>
                     <button onClick={() => void saveItem("publish")} disabled={status === "saving" || uploadingField !== null} style={{ padding: "8px 16px", borderRadius: "6px", border: 0, background: "#0f172a", color: "#fff", fontWeight: 500, cursor: "pointer", fontSize: "13px" }}>{status === "saving" ? "Saving..." : (isNew ? "Add member" : "Save changes")}</button>
                   </footer>
                 </div>
@@ -493,6 +622,300 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
 
 function EditorSection({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return <section className="cms-editor-section"><header><h2>{title}</h2><p>{description}</p></header><div className="cms-form">{children}</div></section>;
+}
+
+const escapeEditorHtml = (value: string) => value
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;");
+
+function BlogBodyEditor({
+  value,
+  onChange,
+  error,
+  uploadFile,
+  uploading,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  uploadFile: (file: File, key?: string) => Promise<string | undefined>;
+  uploading: boolean;
+}) {
+  const dialog = useAdminDialog();
+  const [, setEditorRevision] = useState(0);
+  const editor = useEditor({
+    extensions: [StarterKit, Image.configure({ allowBase64: false }), TableKit.configure({ table: { resizable: true } })],
+    content: value,
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: "cms-blog-editor-content",
+        "aria-label": "Article body",
+      },
+    },
+    onUpdate: ({ editor: currentEditor }) => onChange(currentEditor.getHTML()),
+    onSelectionUpdate: () => setEditorRevision((revision) => revision + 1),
+  });
+
+  useEffect(() => {
+    if (!editor) return;
+    const nextValue = value || "";
+    if (editor.getHTML() !== nextValue) editor.commands.setContent(nextValue, { emitUpdate: false });
+  }, [editor, value]);
+
+  if (!editor) return <div className="cms-blog-editor-loading">Loading article editor…</div>;
+
+  const editLink = async () => {
+    const previousUrl = String(editor.getAttributes("link").href || "");
+    const enteredUrl = await dialog.prompt({
+      title: previousUrl ? "Edit link" : "Add a link",
+      message: "Use a complete web address, email link, or an internal website path.",
+      inputLabel: "Link address",
+      initialValue: previousUrl,
+      placeholder: "https://example.com",
+      confirmLabel: previousUrl ? "Update link" : "Add link",
+      allowEmpty: true,
+    });
+    if (enteredUrl === null) return;
+    const url = enteredUrl.trim();
+    if (!url) {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+    const safeUrl = /^(https?:\/\/|mailto:|\/)/i.test(url) ? url : `https://${url}`;
+    editor.chain().focus().extendMarkRange("link").setLink({ href: safeUrl }).run();
+  };
+
+  const uploadInlineImage = async (file?: File) => {
+    if (!file) return;
+    const url = await uploadFile(file, "body");
+    if (!url) return;
+    const alt = (await dialog.prompt({
+      title: "Describe this image",
+      message: "A short description helps people using screen readers understand the image.",
+      inputLabel: "Image description",
+      placeholder: "Describe the subject and relevant context",
+      confirmLabel: "Insert image",
+      allowEmpty: true,
+    }))?.trim() || "";
+    editor.chain().focus().setImage({ src: url, alt }).run();
+  };
+
+  const uploadAttachment = async (file?: File) => {
+    if (!file) return;
+    const url = await uploadFile(file, "body");
+    if (!url) return;
+    if (file.type.startsWith("image/")) {
+      const alt = (await dialog.prompt({
+        title: "Describe this image",
+        message: "A short description helps people using screen readers understand the image.",
+        inputLabel: "Image description",
+        placeholder: "Describe the subject and relevant context",
+        confirmLabel: "Insert image",
+        allowEmpty: true,
+      }))?.trim() || "";
+      editor.chain().focus().setImage({ src: url, alt }).run();
+      return;
+    }
+    editor.chain().focus().insertContent(`<p><a href="${url}">${escapeEditorHtml(file.name)}</a></p>`).run();
+  };
+
+  const blockType = editor.isActive("heading", { level: 2 }) ? "heading2" : editor.isActive("heading", { level: 3 }) ? "heading3" : "paragraph";
+
+  return (
+    <div className={`cms-blog-editor${error ? " has-error" : ""}`}>
+      <div className="cms-blog-toolbar" role="toolbar" aria-label="Article formatting">
+        <select
+          aria-label="Text style"
+          value={blockType}
+          onChange={(event) => {
+            const type = event.target.value;
+            if (type === "heading2") editor.chain().focus().setHeading({ level: 2 }).run();
+            else if (type === "heading3") editor.chain().focus().setHeading({ level: 3 }).run();
+            else editor.chain().focus().setParagraph().run();
+          }}
+        >
+          <option value="paragraph">Normal text</option>
+          <option value="heading2">Heading 2</option>
+          <option value="heading3">Heading 3</option>
+        </select>
+        <span aria-hidden="true" />
+        <button type="button" title="Bold" aria-label="Bold" className={editor.isActive("bold") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
+        <button type="button" title="Italic" aria-label="Italic" className={editor.isActive("italic") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
+        <button type="button" title="Underline" aria-label="Underline" className={editor.isActive("underline") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></button>
+        <button type="button" title="Opening callout or quote" aria-label="Opening callout or quote" className={`cms-blog-tool-label${editor.isActive("blockquote") ? " is-active" : ""}`} onClick={() => editor.chain().focus().toggleBlockquote().run()}>Quote</button>
+        <button type="button" title="Add or edit link" aria-label="Add or edit link" className={`cms-blog-tool-label${editor.isActive("link") ? " is-active" : ""}`} onClick={() => void editLink()}>Link</button>
+        <span aria-hidden="true" />
+        <button type="button" title="Bulleted list" aria-label="Bulleted list" className={editor.isActive("bulletList") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleBulletList().run()}>•≡</button>
+        <button type="button" title="Numbered list" aria-label="Numbered list" className={editor.isActive("orderedList") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1≡</button>
+        <button type="button" title={editor.isActive("table") ? "Delete table" : "Insert table"} aria-label={editor.isActive("table") ? "Delete table" : "Insert table"} className={`cms-blog-tool-label${editor.isActive("table") ? " is-active" : ""}`} onClick={() => editor.isActive("table") ? editor.chain().focus().deleteTable().run() : editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}>{editor.isActive("table") ? "Delete table" : "Table"}</button>
+        <label title="Insert image" aria-label="Insert image" className={`cms-blog-tool-label${uploading ? " is-disabled" : ""}`}>Image
+          <input
+            type="file"
+            accept="image/*"
+            disabled={uploading}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              await uploadInlineImage(file);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <label title="Attach image or PDF" aria-label="Attach image or PDF" className={`cms-blog-tool-label cms-blog-attachment${uploading ? " is-disabled" : ""}`}>Attach
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            disabled={uploading}
+            onChange={async (event) => {
+              await uploadAttachment(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <button type="button" className="cms-blog-tool-label" title="Undo last change" aria-label="Undo last change" disabled={!editor.can().chain().focus().undo().run()} onClick={() => editor.chain().focus().undo().run()}>Undo</button>
+        <button type="button" className="cms-blog-tool-label" title="Redo last change" aria-label="Redo last change" disabled={!editor.can().chain().focus().redo().run()} onClick={() => editor.chain().focus().redo().run()}>Redo</button>
+      </div>
+      <BubbleMenu editor={editor} className="cms-blog-bubble-menu">
+        <button type="button" aria-label="Bold" className={editor.isActive("bold") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleBold().run()}><strong>B</strong></button>
+        <button type="button" aria-label="Italic" className={editor.isActive("italic") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleItalic().run()}><em>I</em></button>
+        <button type="button" aria-label="Underline" className={editor.isActive("underline") ? "is-active" : ""} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></button>
+        <button type="button" aria-label="Add or edit link" className={`cms-blog-bubble-label${editor.isActive("link") ? " is-active" : ""}`} onClick={() => void editLink()}>Link</button>
+      </BubbleMenu>
+      <EditorContent editor={editor} />
+      {error ? <small className="cms-field-error">{error}</small> : null}
+    </div>
+  );
+}
+
+function VisualBlogEditor({
+  draft,
+  updateDraft,
+  uploadFile,
+  uploadingField,
+  fieldErrors,
+}: {
+  draft: EditorItem;
+  updateDraft: (key: string, value: unknown) => void;
+  uploadFile: (file: File, key?: string) => Promise<string | undefined>;
+  uploadingField: string | null;
+  fieldErrors: Record<string, string>;
+}) {
+  const imageSrc = draft.image ? String(draft.image).replace(/^\.\//, "/") : "";
+  const bodyValue = cmsRichTextToHtml(draft.body);
+
+  return (
+    <div className="cms-live-blog-page">
+      <section className="cms-live-blog-hero">
+        <div className="cms-live-blog-copy">
+          <div className="cms-live-blog-label-row">
+            <span>Article</span>
+            <input
+              className={fieldErrors.category ? "has-error" : ""}
+              value={String(draft.category || "")}
+              onChange={(event) => updateDraft("category", event.target.value)}
+              placeholder="Category"
+              aria-label="Article category"
+            />
+          </div>
+
+          <textarea
+            className={`cms-live-blog-title${fieldErrors.title ? " has-error" : ""}`}
+            value={String(draft.title || "")}
+            onChange={(event) => updateDraft("title", event.target.value)}
+            placeholder="Write a clear, useful article title…"
+            rows={3}
+          />
+          {fieldErrors.title ? <small className="cms-field-error">{fieldErrors.title}</small> : null}
+
+          <textarea
+            className={`cms-live-blog-excerpt${fieldErrors.excerpt ? " has-error" : ""}`}
+            value={extractText(draft.excerpt)}
+            onChange={(event) => updateDraft("excerpt", event.target.value)}
+            placeholder="Summarise the article in one or two sentences. This appears on blog cards and in search results."
+            rows={4}
+          />
+          {fieldErrors.excerpt ? <small className="cms-field-error">{fieldErrors.excerpt}</small> : null}
+
+          <div className="cms-live-blog-meta">
+            <label className={fieldErrors.author ? "has-error" : ""}>
+              <span>By</span>
+              <input value={String(draft.author || "")} onChange={(event) => updateDraft("author", event.target.value)} placeholder="Author name" />
+            </label>
+            <label className={fieldErrors.date ? "has-error" : ""}>
+              <span>Published</span>
+              <input type="date" value={String(draft.date || "")} onChange={(event) => updateDraft("date", event.target.value)} />
+            </label>
+          </div>
+        </div>
+
+        <figure className={`cms-live-blog-image${fieldErrors.image ? " has-error" : ""}`}>
+          {imageSrc ? (
+            <img src={imageSrc} alt={String(draft.imageAlt || "Article feature preview")} />
+          ) : (
+            <div className="cms-live-blog-image-empty">
+              <strong>Feature image</strong>
+              <span>Use a square image with a clear focal point.</span>
+            </div>
+          )}
+          <figcaption>
+            <input
+              value={String(draft.image || "")}
+              onChange={(event) => updateDraft("image", event.target.value)}
+              placeholder="Paste image URL"
+              aria-label="Feature image URL"
+            />
+            <div>
+              <label>
+                {uploadingField === "image" ? "Uploading…" : draft.image ? "Replace image" : "Upload image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingField === "image"}
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      const url = await uploadFile(file, "image");
+                      if (url) updateDraft("image", url);
+                    }
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+              {draft.image ? <button type="button" onClick={() => updateDraft("image", "")}>Remove</button> : null}
+            </div>
+            <input
+              className={fieldErrors.imageAlt ? "has-error" : ""}
+              value={String(draft.imageAlt || "")}
+              onChange={(event) => updateDraft("imageAlt", event.target.value)}
+              placeholder="Describe the image for screen readers"
+              aria-label="Feature image description"
+            />
+          </figcaption>
+        </figure>
+      </section>
+
+      <section className="cms-live-blog-story">
+        <article>
+          <div className="cms-live-blog-body-heading">
+            <div>
+              <p className="cms-live-blog-section-label">Story body</p>
+              <h2>Build the article</h2>
+            </div>
+            <p>Start with Quote for a highlighted opening statement, then use descriptive headings to keep the story easy to scan.</p>
+          </div>
+          <BlogBodyEditor
+            value={bodyValue}
+            onChange={(value) => updateDraft("body", value)}
+            error={fieldErrors.body}
+            uploadFile={uploadFile}
+            uploading={uploadingField === "body"}
+          />
+        </article>
+      </section>
+    </div>
+  );
 }
 
 function VisualEventEditor({
@@ -1166,6 +1589,7 @@ function CmsSetup() {
 }
 
 function CmsUsers() {
+  const dialog = useAdminDialog();
   const [users, setUsers] = useState<any[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<"superadmin" | "admin">("superadmin");
   const [currentUserEmail, setCurrentUserEmail] = useState("");
@@ -1182,7 +1606,7 @@ function CmsUsers() {
   const [newRole, setNewRole] = useState<"superadmin" | "admin">("admin");
   const [isCreating, setIsCreating] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -1231,7 +1655,7 @@ function CmsUsers() {
         setPassword("");
         setNewRole("admin");
         setShowAddModal(false);
-        setToast(`Successfully added ${email} as ${newRole === "superadmin" ? "Super Admin" : "Admin"}`);
+        setToast({ message: `Successfully added ${email} as ${newRole === "superadmin" ? "Super Admin" : "Admin"}`, type: "success" });
         await fetchUsers();
       } else {
         setActionError(data.error || "Failed to create user");
@@ -1251,14 +1675,14 @@ function CmsUsers() {
         body: JSON.stringify({ uid, role }),
       });
       if (res.ok) {
-        setToast(`Updated ${targetEmail} role to ${role === "superadmin" ? "Super Admin" : "Admin"}`);
+        setToast({ message: `Updated ${targetEmail} role to ${role === "superadmin" ? "Super Admin" : "Admin"}`, type: "success" });
         await fetchUsers();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to update user role");
+        setToast({ message: data.error || "Failed to update user role", type: "error" });
       }
     } catch {
-      alert("Network error updating role.");
+      setToast({ message: "Network error updating role.", type: "error" });
     }
   };
 
@@ -1275,7 +1699,7 @@ function CmsUsers() {
       });
       const data = await res.json();
       if (res.ok) {
-        setToast(`Password reset successfully for ${resetPasswordTarget.email}`);
+        setToast({ message: `Password reset successfully for ${resetPasswordTarget.email}`, type: "success" });
         setResetPasswordTarget(null);
         setNewPassword("");
       } else {
@@ -1289,7 +1713,13 @@ function CmsUsers() {
   };
 
   const deleteUser = async (uid: string, userEmail: string) => {
-    if (!window.confirm(`Revoke CMS access for ${userEmail}?`)) return;
+    const confirmed = await dialog.confirm({
+      title: "Revoke CMS access?",
+      message: `${userEmail} will no longer be able to sign in or manage website content.`,
+      confirmLabel: "Revoke access",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch("/api/cms/users", {
         method: "DELETE",
@@ -1297,14 +1727,14 @@ function CmsUsers() {
         body: JSON.stringify({ uid }),
       });
       if (res.ok) {
-        setToast(`Access revoked for ${userEmail}`);
+        setToast({ message: `Access revoked for ${userEmail}`, type: "success" });
         await fetchUsers();
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete user");
+        setToast({ message: data.error || "Failed to delete user", type: "error" });
       }
     } catch {
-      alert("Network error deleting user.");
+      setToast({ message: "Network error deleting user.", type: "error" });
     }
   };
 
@@ -1317,8 +1747,8 @@ function CmsUsers() {
   return (
     <div className="cms-overview">
       {toast && (
-        <div className="cms-editor-notice is-saved" style={{ position: "fixed", top: "20px", right: "20px", zIndex: 100, background: "#10b981", color: "#fff", padding: "12px 20px", borderRadius: "8px", fontWeight: 600, boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
-          ✓ {toast}
+        <div className={`cms-toast is-${toast.type}`}>
+          {toast.message}
         </div>
       )}
 

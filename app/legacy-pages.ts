@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Metadata } from "next";
 import { readCmsContent } from "../lib/cms/store";
+import { mergeCmsBlogIntro } from "../lib/cms/rich-text";
 import type { CmsCollection, CmsContent, CmsEntry } from "../lib/cms/types";
 
 export type PageDefinition = {
@@ -188,9 +189,10 @@ const toPublicItem = (collection: CmsCollection, item: CmsEntry) => {
   } = item;
   if (collection === "blogPosts") {
     const post = item as CmsContent["blogPosts"][number];
-    const bodyStr = String(post.body || "");
-    const words = bodyStr.replace(/<[^>]+>/g, "").split(/\s+/).filter(Boolean).length;
-    return { ...publicItem, date: formatExactDate(post.date), bodyHtml: bodyStr, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
+    const bodyHtml = mergeCmsBlogIntro(post.intro, post.body);
+    const { intro: _intro, ...blogPublicItem } = publicItem as typeof publicItem & { intro?: unknown };
+    const words = bodyHtml.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+    return { ...blogPublicItem, date: formatExactDate(post.date), bodyHtml, readingTime: `${Math.max(1, Math.ceil(words / 220))} min read` };
   }
   if (collection === "events") {
     const event = item as CmsContent["events"][number];

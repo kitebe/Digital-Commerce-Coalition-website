@@ -75,7 +75,7 @@ export const entrySchemas = {
   blogPosts: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), date: exactDate.or(z.literal("")), category: shortString,
     title: shortString, excerpt: safeString, author: shortString, image: shortString,
-    imageAlt: shortString, intro: safeString, body: safeString, takeaways: stringList,
+    imageAlt: shortString, intro: safeString.optional(), body: safeString, takeaways: stringList,
   }),
   events: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), eventDate: exactDate.or(z.literal("")).optional(), format: shortString.optional(),
@@ -127,7 +127,7 @@ export function validateCmsEntry(
   const record = entry as unknown as Record<string, unknown>;
   const fieldErrors: CmsFieldErrors = {};
   if (publishState === "published") {
-    if (collection === "blogPosts") required(fieldErrors, record, ["title", "slug", "date", "category", "excerpt", "author", "image", "imageAlt", "intro"]);
+    if (collection === "blogPosts") required(fieldErrors, record, ["title", "slug", "date", "category", "excerpt", "author", "image", "imageAlt"]);
     if (collection === "events") required(fieldErrors, record, ["title", "slug", "eventDate", "format", "summary", "location", "image", "imageAlt"]);
     if (collection === "publications") required(fieldErrors, record, ["title", "shortTitle", "slug", "type", "date", "description", "coverImage"]);
     if (collection === "reports") required(fieldErrors, record, ["title", "type", "date", "description", "coverImage"]);

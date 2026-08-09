@@ -31,7 +31,8 @@ export type BlogPost = EditorialWorkflow & {
   author: string;
   image: string;
   imageAlt: string;
-  intro: string;
+  /** Retained temporarily so older CMS entries can be migrated into the body. */
+  intro?: string;
   body: string;
   takeaways: string[];
 };
@@ -102,4 +103,3 @@ export type CmsContent = {
 
 export type CmsCollection = Exclude<keyof CmsContent, "schemaVersion">;
 export type CmsEntry = CmsContent[CmsCollection][number];
-

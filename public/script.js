@@ -276,7 +276,6 @@ const setupRevealAnimations = () => {
         ".blog-post-hero h1",
         ".blog-post-excerpt",
         ".blog-post-meta",
-        ".blog-post-lead",
         ".blog-post-paragraphs p",
         ".blog-post-contact .blog-eyebrow",
         ".blog-post-contact h2",
