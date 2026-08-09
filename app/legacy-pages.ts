@@ -201,11 +201,23 @@ const routeAliases: Record<string, string> = {
   "./reports.html": "/reports",
 };
 
-const readPageSource = (filename: string) =>
-  readFileSync(join(process.cwd(), "legacy-html", filename), "utf8");
+const readPageSource = (filename: string) => {
+  try {
+    return readFileSync(join(process.cwd(), "legacy-html", filename), "utf8");
+  } catch (error) {
+    console.error(`[LegacyPages] Error reading legacy-html/${filename}:`, error);
+    return `<!doctype html><html><body><main><section><h1>Digital Commerce Coalition</h1></section></main></body></html>`;
+  }
+};
 
-const readRuntimeSource = (filename: string) =>
-  readFileSync(join(process.cwd(), "public", filename), "utf8");
+const readRuntimeSource = (filename: string) => {
+  try {
+    return readFileSync(join(process.cwd(), "public", filename), "utf8");
+  } catch (error) {
+    console.error(`[LegacyPages] Error reading public/${filename}:`, error);
+    return "";
+  }
+};
 
 const managedScripts: Record<
   string,
