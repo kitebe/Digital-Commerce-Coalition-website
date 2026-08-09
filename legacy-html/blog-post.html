@@ -68,6 +68,9 @@
     </header>
 
     <main class="blog-post-main">
+      <div class="blog-reading-progress" aria-hidden="true">
+        <span id="blog-reading-progress-bar"></span>
+      </div>
       <div class="diamond-rails" aria-hidden="true">
         <span></span>
         <span></span>
@@ -75,43 +78,80 @@
 
       <article>
         <header class="blog-post-hero">
-          <a class="blog-back-link" href="./blog.html">
-            <span aria-hidden="true">←</span>
-            All articles
-          </a>
-          <p id="blog-post-category" class="blog-eyebrow">Article</p>
-          <h1 id="blog-post-title">Coalition perspective</h1>
-          <p id="blog-post-excerpt" class="blog-post-excerpt"></p>
-          <div class="blog-post-meta">
-            <p id="blog-post-author"></p>
-            <p id="blog-post-date"></p>
-            <p id="blog-post-reading-time"></p>
+          <div class="blog-post-hero-inner">
+            <div class="blog-post-kicker">
+              <a class="blog-back-link" href="./blog.html">
+                <span aria-hidden="true">←</span>
+                All articles
+              </a>
+              <p>DCC Journal</p>
+            </div>
+
+            <div class="blog-post-heading">
+              <p id="blog-post-category" class="blog-eyebrow">Article</p>
+              <div class="blog-post-heading-copy">
+                <h1 id="blog-post-title">Coalition perspective</h1>
+                <p id="blog-post-excerpt" class="blog-post-excerpt"></p>
+                <div class="blog-post-meta" aria-label="Article details">
+                  <div class="blog-author-mark" aria-hidden="true">DCC</div>
+                  <div>
+                    <span id="blog-post-author"></span>
+                    <p>
+                      <span id="blog-post-date"></span>
+                      <span aria-hidden="true">·</span>
+                      <span id="blog-post-reading-time"></span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
           <figure class="blog-post-image-wrap">
             <img id="blog-post-image" src="" alt="" />
           </figure>
         </header>
 
         <div class="blog-post-body">
-          <div class="blog-post-content">
+          <aside class="blog-post-aside" aria-label="Article navigation and sharing">
+            <div class="blog-post-aside-inner">
+              <div class="blog-toc-group">
+                <p class="blog-aside-label">On this page</p>
+                <nav id="blog-post-toc" class="blog-post-toc" aria-label="Article sections"></nav>
+              </div>
+              <div class="blog-share-group">
+                <p class="blog-aside-label">Share</p>
+                <div class="blog-share-links">
+                  <button id="blog-copy-link" type="button">Copy link</button>
+                  <a id="blog-linkedin-share" href="#" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                </div>
+                <p id="blog-copy-status" class="blog-copy-status" aria-live="polite"></p>
+              </div>
+            </div>
+          </aside>
+
+          <div class="blog-post-content" id="blog-post-content">
             <p id="blog-post-intro" class="blog-post-lead"></p>
             <div id="blog-post-paragraphs" class="blog-post-paragraphs cms-rich-content"></div>
-
-            <section class="blog-takeaways" aria-labelledby="takeaways-title">
-              <p class="blog-eyebrow">In brief</p>
-              <h2 id="takeaways-title">Three ideas to take forward</h2>
-              <ul id="blog-post-takeaways"></ul>
-            </section>
           </div>
         </div>
       </article>
 
+      <section class="blog-related" aria-labelledby="blog-related-title">
+        <div class="blog-related-heading">
+          <p class="blog-eyebrow">Continue reading</p>
+          <h2 id="blog-related-title">More from the journal</h2>
+          <a href="./blog.html">View all articles <span aria-hidden="true">→</span></a>
+        </div>
+        <div id="blog-related-grid" class="blog-related-grid"></div>
+      </section>
+
       <section id="contact" class="blog-post-contact">
-        <p class="blog-eyebrow">Keep reading</p>
+        <p class="blog-eyebrow">Stay in the conversation</p>
         <div>
-          <h2>Explore more Coalition perspectives.</h2>
-          <a href="./blog.html">
-            View all articles
+          <h2>Ideas move digital commerce forward.</h2>
+          <a href="mailto:secretariat@digitalcommercecoalition.in">
+            Get in touch
             <span aria-hidden="true">→</span>
           </a>
         </div>

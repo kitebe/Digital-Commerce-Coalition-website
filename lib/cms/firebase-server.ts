@@ -2,6 +2,7 @@ import "server-only";
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { getAuth } from "firebase-admin/auth";
 
 const isFirebaseAdminConfigured = () => {
   return Boolean(
@@ -43,4 +44,10 @@ export const getStorageBucket = () => {
   const app = getFirebaseAdminApp();
   if (!app) return null;
   return getStorage(app).bucket();
+};
+
+export const getServerAuth = () => {
+  const app = getFirebaseAdminApp();
+  if (!app) return null;
+  return getAuth(app);
 };

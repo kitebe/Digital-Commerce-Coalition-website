@@ -1,10 +1,9 @@
 import { z } from "zod";
-import { richTextToPlainText } from "./rich-text";
 import type {
   CmsCollection,
   CmsEntry,
   PublishState,
-
+  RichTextNode,
 } from "./types";
 
 const safeString = z.string().max(20_000);
@@ -49,7 +48,7 @@ const validateRichNode = (node: RichTextNode, issues: string[], depth = 0) => {
     return;
   }
   if (node.text && node.text.length > 20_000) issues.push("A rich-text node is too long.");
-  node.marks?.forEach((mark) => {
+  node.marks?.forEach((mark: { type: string; attrs?: Record<string, unknown> }) => {
     if (!allowedMarks.has(mark.type)) issues.push(`Unsupported text style: ${mark.type}.`);
     if (mark.type === "link" && !isSafeLink(mark.attrs?.href)) {
       issues.push("Rich-text links must use http, https, mailto, or an internal path.");
@@ -62,7 +61,7 @@ const validateRichNode = (node: RichTextNode, issues: string[], depth = 0) => {
   if (node.type === "youtube" && !isYoutube(node.attrs?.src)) {
     issues.push("Only YouTube video URLs can be embedded.");
   }
-  node.content?.forEach((child) => validateRichNode(child, issues, depth + 1));
+  node.content?.forEach((child: RichTextNode) => validateRichNode(child, issues, depth + 1));
 };
 
 export const richTextDocumentSchema = safeString;
@@ -135,7 +134,7 @@ export function validateCmsEntry(
     if (collection === "pressCoverage") required(fieldErrors, record, ["title", "publication", "date", "url"]);
     if (collection === "members") required(fieldErrors, record, ["name", "logo", "logoAlt"]);
 
-    if ((collection === "blogPosts" || collection === "events") && record.body.length < 10) {
+    if ((collection === "blogPosts" || collection === "events") && String(record.body || "").length < 10) {
       fieldErrors.body = "Add meaningful content before publishing.";
     }
     if (collection === "pressCoverage") {

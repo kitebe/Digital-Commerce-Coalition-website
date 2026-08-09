@@ -2,7 +2,8 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
-import { createRemoteJWKSet, jwtVerify, SignJWT } from "jose";
+import { getServerAuth } from "./firebase-server";
+import { jwtVerify, SignJWT } from "jose";
 
 export const CMS_SESSION_COOKIE = "dcc_cms_session";
 
@@ -34,20 +35,16 @@ export const verifyCmsPassword = (password: string) => {
 
 export const getCmsSessionToken = () => hash("dcc-cms-authenticated");
 
-const JWKS = createRemoteJWKSet(
-  new URL("https://www.googleapis.com/serviceaccounts/v1/jwk/securetoken@system.gserviceaccount.com")
-);
-
 export async function verifyFirebaseIdToken(token: string, projectId: string) {
   try {
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: `https://securetoken.google.com/${projectId}`,
-      audience: projectId,
-    });
+    const auth = getServerAuth();
+    if (!auth) throw new Error("Firebase Admin Auth is not configured");
+    const payload = await auth.verifyIdToken(token);
+    console.log("Firebase Auth Admin JWT Payload verified successfully.");
     return payload;
-  } catch (error) {
-    console.error("Firebase ID token verification failed:", error);
-    return null;
+  } catch (error: any) {
+    console.error("Firebase ID token verification failed via Admin SDK:", error);
+    return { error: error.message || String(error) };
   }
 }
 
@@ -56,9 +53,9 @@ const getSecretKey = () => {
   return new TextEncoder().encode(secret);
 };
 
-export async function createSessionToken(email: string, uid: string) {
+export async function createSessionToken(email: string, uid: string, role: "superadmin" | "admin" = "superadmin") {
   const secretKey = getSecretKey();
-  const token = await new SignJWT({ email, uid })
+  const token = await new SignJWT({ email, uid, role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
@@ -70,7 +67,7 @@ export async function verifySessionToken(token: string) {
   try {
     const secretKey = getSecretKey();
     const { payload } = await jwtVerify(token, secretKey);
-    return payload as { email: string; uid: string };
+    return payload as { email: string; uid: string; role?: "superadmin" | "admin" };
   } catch (error) {
     return null;
   }
@@ -84,14 +81,6 @@ export async function isCmsAuthenticated() {
   // 1. Try Firebase-based session token
   const firebasePayload = await verifySessionToken(token);
   if (firebasePayload) {
-    const email = firebasePayload.email;
-    const allowed = process.env.ALLOWED_CMS_USERS
-      ? process.env.ALLOWED_CMS_USERS.split(",").map((e) => e.trim().toLowerCase())
-      : [];
-    if (allowed.length > 0 && !allowed.includes(email.toLowerCase())) {
-      console.warn(`User ${email} is authenticated but not in ALLOWED_CMS_USERS`);
-      return false;
-    }
     return true;
   }
 

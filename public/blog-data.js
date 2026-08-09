@@ -1,8 +1,9 @@
 const dccBlogPosts = [];
 
 const createBlogCard = (post, index) => {
-  const article = document.createElement("article");
+  const article = document.createElement("a");
   article.className = "blog-card";
+  article.href = `/blog-post?post=${encodeURIComponent(post.slug)}`;
   article.style.setProperty("--blog-card-index", index);
 
   const imageWrap = document.createElement("div");
@@ -19,7 +20,7 @@ const createBlogCard = (post, index) => {
 
   const label = document.createElement("p");
   label.className = "blog-card-label";
-  label.textContent = `Sample article · ${post.category}`;
+  label.textContent = post.category || "Coalition perspective";
 
   const title = document.createElement("h2");
   title.textContent = post.title;

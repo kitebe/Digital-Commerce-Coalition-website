@@ -57,20 +57,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Firebase is not configured on the server." }, { status: 500 });
     }
     const payload = await verifyFirebaseIdToken(idToken, projectId);
-    const email = payload && typeof payload.email === "string" ? payload.email : "";
-    const sub = payload && typeof payload.sub === "string" ? payload.sub : "";
-    if (!payload || !email || !sub) {
-      return NextResponse.json({ error: "Invalid or expired Firebase ID token." }, { status: 401 });
+    if (!payload || "error" in payload) {
+      return NextResponse.json({ error: `Firebase JWT verification error: ${payload && "error" in payload ? payload.error : "Verification failed"}` }, { status: 401 });
+    }
+    const email = typeof payload.email === "string" ? payload.email : "";
+    const sub = typeof payload.sub === "string" ? payload.sub : "";
+    if (!email || !sub) {
+      return NextResponse.json({ error: "Invalid or expired Firebase ID token. Missing email or sub." }, { status: 401 });
     }
 
-    const allowed = process.env.ALLOWED_CMS_USERS
-      ? process.env.ALLOWED_CMS_USERS.split(",").map((e) => e.trim().toLowerCase())
-      : [];
-    if (allowed.length > 0 && !allowed.includes(email.toLowerCase())) {
-      return NextResponse.json({ error: "Your account is not authorized to access this CMS." }, { status: 403 });
+    // Determine user role from Firebase custom claims or default to superadmin
+    let role: "superadmin" | "admin" = "superadmin";
+    try {
+      const auth = (await import("../../../../lib/cms/firebase-server")).getServerAuth();
+      if (auth) {
+        const userRecord = await auth.getUser(sub);
+        if (userRecord.customClaims?.role === "admin") {
+          role = "admin";
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user custom claims:", err);
     }
 
-    const sessionToken = await createSessionToken(email, sub);
+    const sessionToken = await createSessionToken(email, sub, role);
     const response = NextResponse.json({ authenticated: true });
     response.cookies.set(CMS_SESSION_COOKIE, sessionToken, {
       httpOnly: true,

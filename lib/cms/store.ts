@@ -197,8 +197,9 @@ class FirebaseCmsRepository implements CmsRepository {
     
     const batch = db.batch();
     const orderedItems = ordered.map((entry, index) => {
-      const itemWithOrder = { ...entry, _order: index };
-      batch.set(db.collection(collection).doc(itemWithOrder.id), JSON.parse(JSON.stringify(itemWithOrder)));
+      const target = entry as CmsEntry;
+      const itemWithOrder = { ...target, _order: index };
+      batch.set(db.collection(collection).doc(target.id), JSON.parse(JSON.stringify(itemWithOrder)));
       return itemWithOrder;
     });
     

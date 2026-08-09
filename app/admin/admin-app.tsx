@@ -109,7 +109,12 @@ const getItems = (content: CmsContent, collection: CmsCollection) => content[col
 const itemTitle = (item: EditorItem) => String(item.title || item.name || item.publication || "Untitled item");
 const itemDetail = (collection: CmsCollection, item: EditorItem) => collection === "members" ? "Homepage member" : String(item.category || item.type || item.publication || item.format || "Content");
 const itemStatus = (item: EditorItem) => item.publishState === "draft" ? "draft" : "published";
-const itemDate = (item: EditorItem) => String(item.date || item.eventDate || item.updatedAt || "—");
+const formatDateOnly = (value: unknown) => {
+  if (!value) return "—";
+  const str = String(value);
+  return str.split("T")[0];
+};
+const itemDate = (item: EditorItem) => formatDateOnly(item.date || item.eventDate || item.updatedAt);
 const formatUpdatedAt = (value: unknown) => {
   if (!value) return "Not saved yet";
   const date = new Date(String(value));
@@ -140,6 +145,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [slugUnlocked, setSlugUnlocked] = useState(false);
   const [viewMode, setViewMode] = useState<"visual" | "form">("visual");
+  const [showUsers, setShowUsers] = useState(false);
 
   const items = useMemo(() => content && activeCollection ? getItems(content, activeCollection) : [], [activeCollection, content]);
   const isNew = selectedId === "new";
@@ -153,7 +159,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
       const params = new URLSearchParams(window.location.hash.slice(1));
       const col = params.get("collection") as CmsCollection;
       const id = params.get("id");
-      if (col && configs[col]) {
+      if (col && configs[col] && initialContent) {
         setActiveCollection(col);
         if (id) {
           if (id === "new") {
@@ -205,7 +211,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); };
   const selectCollection = (collection: CmsCollection, id?: string) => {
     if (!canLeaveEditor()) return;
-    setActiveCollection(collection); resetEditor(); setSearchQuery(""); setStatusFilter("all");
+    setActiveCollection(collection); setShowUsers(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
     if (id && content) {
       const item = getItems(content, collection).find((entry) => entry.id === id);
       if (item) { const next = clone(item as unknown as EditorItem); migrateDates(next, collection); setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); }
@@ -325,20 +331,21 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
   return (
     <div className="cms-shell">
       <aside className="cms-sidebar">
-        <a className="cms-brand" href="/admin" aria-label="Digital Commerce Coalition CMS"><span className="cms-brand-mark">DCC</span><span><strong>Coalition CMS</strong><small>Content workspace</small></span></a>
+        <a className="cms-brand" href="/admin" aria-label="Digital Commerce Coalition CMS" style={{ padding: "6px 2px 0", marginBottom: "44px" }}><img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" style={{ height: "48px", width: "auto", maxWidth: "205px", objectFit: "contain" }} /></a>
         <nav className="cms-nav" aria-label="CMS sections">
-          <button className={!activeCollection ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
-          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
+          <button className={!activeCollection && !showUsers ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); resetEditor(); } }}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
+          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers ? "is-active" : ""} onClick={() => selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
+          <button className={showUsers ? "is-active" : ""} onClick={() => { if (canLeaveEditor()) { setShowUsers(true); setActiveCollection(null); resetEditor(); } }}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
         </nav>
         <div className="cms-sidebar-footer">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', borderTop: '1px solid #e2e8f0' }}>
-            <span className="cms-avatar" style={{ margin: 0, background: '#1e293b', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 600 }}>DC</span>
-            <button onClick={handleSignOut} style={{ color: '#64748b', fontSize: '14px', fontWeight: 500, padding: 0, border: 'none', background: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = '#0f172a'} onMouseOut={(e) => e.currentTarget.style.color = '#64748b'}>Sign out</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 10px' }}>
+            <span className="cms-avatar" style={{ margin: 0, background: '#24252a', color: '#fff', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700 }}>DC</span>
+            <button onClick={handleSignOut} style={{ color: '#858890', fontSize: '13px', fontWeight: 500, padding: 0, border: 'none', background: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseOver={(e) => e.currentTarget.style.color = '#fff'} onMouseOut={(e) => e.currentTarget.style.color = '#858890'}>Sign out</button>
           </div>
         </div>
       </aside>
       <main className="cms-main">
-        {!activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
+        {showUsers ? <CmsUsers /> : !activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
           <>
             {(!draft || activeCollection === "members") ? (
               <>
@@ -440,7 +447,7 @@ export function AdminApp({ configured, authenticated, initialContent, loginError
                   {contentFields.length ? <EditorSection title="Content" description="The main information visitors will see.">{contentFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={uploadingField === field.key} onChange={(value) => updateDraft(field.key, value)} onUpload={async (file) => { const url = await uploadFile(file, field.key); if (url) updateDraft(field.key, url); return url; }} />)}</EditorSection> : null}
                   {activeConfig?.fields.some((field) => field.group === "media") ? <EditorSection title="Media" description="Images and downloadable files used by this entry.">{activeConfig.fields.filter((field) => field.group === "media").map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={uploadingField === field.key} onChange={(value) => updateDraft(field.key, value)} onUpload={async (file) => { const url = await uploadFile(file, field.key); if (url) updateDraft(field.key, url); return url; }} />)}</EditorSection> : null}
                 </div>
-                  {activeCollection !== "members" ? (
+                  {(activeCollection as string) !== "members" ? (
                     <aside className="cms-editor-aside">
                       <header className="cms-inspector-header"><div><strong>Entry settings</strong><span>{isNew ? `New ${activeConfig?.singular}` : `Updated ${formatUpdatedAt(draft.updatedAt)}`}</span></div><i className={`cms-status-badge is-${itemStatus(draft)}`}>{itemStatus(draft)}</i></header>
                       {sidebarFields.length ? <section className="cms-document-details"><p className="cms-aside-label">{activeConfig?.singular} details</p><div className="cms-sidebar-fields">{sidebarFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={false} onChange={(value) => updateDraft(field.key, value)} onUpload={async () => undefined} />)}</div></section> : null}
@@ -1069,7 +1076,7 @@ function CmsLogin({ error }: { error: string }) {
           </a>
           <p className="cms-eyebrow">Content studio</p>
           <h1>Welcome back</h1>
-          <p>Sign in with your Firebase account.</p>
+          <p style={{ margin: '0 0 24px', color: '#64748b', fontSize: '14px' }}>Sign in to continue.</p>
           
           <form onSubmit={handleEmailSignIn}>
             <label>
@@ -1156,4 +1163,487 @@ function CmsLogin({ error }: { error: string }) {
 
 function CmsSetup() {
   return <main className="cms-auth-page"><section className="cms-login-card cms-setup-card"><p className="cms-eyebrow">Setup required</p><h1>Secure your content studio</h1><p>Add these values to <code>.env.local</code>, then restart the development server.</p><pre>CMS_PASSWORD=your-strong-password{"\n"}CMS_SECRET=your-long-random-secret</pre><a className="cms-back-link" href="/">← Back to website</a></section></main>;
+}
+
+function CmsUsers() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<"superadmin" | "admin">("superadmin");
+  const [currentUserEmail, setCurrentUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState<{ uid: string; email: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [newRole, setNewRole] = useState<"superadmin" | "admin">("admin");
+  const [isCreating, setIsCreating] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const [toast, setToast] = useState<string | null>(null);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/cms/users");
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(data.users || []);
+        if (data.currentUserRole) setCurrentUserRole(data.currentUserRole);
+        if (data.currentUserEmail) setCurrentUserEmail(data.currentUserEmail);
+      } else {
+        setError(data.error || "Failed to load users");
+      }
+    } catch {
+      setError("Network error fetching users.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const createUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setIsCreating(true);
+    setActionError("");
+    try {
+      const res = await fetch("/api/cms/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role: newRole }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setEmail("");
+        setPassword("");
+        setNewRole("admin");
+        setShowAddModal(false);
+        setToast(`Successfully added ${email} as ${newRole === "superadmin" ? "Super Admin" : "Admin"}`);
+        await fetchUsers();
+      } else {
+        setActionError(data.error || "Failed to create user");
+      }
+    } catch {
+      setActionError("Failed to connect to server.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const updateUserRole = async (uid: string, targetEmail: string, role: "superadmin" | "admin") => {
+    try {
+      const res = await fetch("/api/cms/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid, role }),
+      });
+      if (res.ok) {
+        setToast(`Updated ${targetEmail} role to ${role === "superadmin" ? "Super Admin" : "Admin"}`);
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to update user role");
+      }
+    } catch {
+      alert("Network error updating role.");
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordTarget || !newPassword) return;
+    setIsResetting(true);
+    setResetError("");
+    try {
+      const res = await fetch("/api/cms/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: resetPasswordTarget.uid, password: newPassword }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToast(`Password reset successfully for ${resetPasswordTarget.email}`);
+        setResetPasswordTarget(null);
+        setNewPassword("");
+      } else {
+        setResetError(data.error || "Failed to update password.");
+      }
+    } catch {
+      setResetError("Network error resetting password.");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const deleteUser = async (uid: string, userEmail: string) => {
+    if (!window.confirm(`Revoke CMS access for ${userEmail}?`)) return;
+    try {
+      const res = await fetch("/api/cms/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid }),
+      });
+      if (res.ok) {
+        setToast(`Access revoked for ${userEmail}`);
+        await fetchUsers();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to delete user");
+      }
+    } catch {
+      alert("Network error deleting user.");
+    }
+  };
+
+  const filteredUsers = users.filter((u) =>
+    (u.email || "").toLowerCase().includes(searchQuery.toLowerCase().trim())
+  );
+
+  const isSuperAdmin = currentUserRole === "superadmin";
+
+  return (
+    <div className="cms-overview">
+      {toast && (
+        <div className="cms-editor-notice is-saved" style={{ position: "fixed", top: "20px", right: "20px", zIndex: 100, background: "#10b981", color: "#fff", padding: "12px 20px", borderRadius: "8px", fontWeight: 600, boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
+          ✓ {toast}
+        </div>
+      )}
+
+      <header className="cms-page-header">
+        <div>
+          <p className="cms-eyebrow">Settings & Access</p>
+          <h1>Admin Users</h1>
+          <p>Manage team members authorized to access and edit content in the Coalition CMS.</p>
+        </div>
+        {isSuperAdmin && (
+          <button className="cms-primary-button" onClick={() => setShowAddModal(true)}>
+            <span>＋</span> Add user
+          </button>
+        )}
+      </header>
+
+      {!isSuperAdmin && (
+        <div style={{ padding: "14px 18px", background: "#eff6ff", color: "#1e40af", borderRadius: "8px", border: "1px solid #bfdbfe", marginBottom: "20px", fontSize: "13px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "16px" }}>🔒</span>
+          <span>You are logged in as an <strong>Admin</strong>. Only <strong>Super Admins</strong> can add, edit, or revoke user accounts.</span>
+        </div>
+      )}
+
+      {error ? (
+        <div style={{ padding: "16px", background: "#fef2f2", color: "#ef4444", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "20px" }}>
+          {error}
+        </div>
+      ) : null}
+
+      <section className="cms-library-card">
+        <div className="cms-library-toolbar">
+          <label className="cms-search-field">
+            <span>⌕</span>
+            <input
+              aria-label="Search users"
+              placeholder="Search user emails…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </label>
+          <div className="cms-filter-tabs">
+            <button className="is-active">All users ({filteredUsers.length})</button>
+          </div>
+        </div>
+
+        <div className="cms-content-table" role="table" aria-label="Admin Users">
+          <div className="cms-table-head" role="row" style={{ gridTemplateColumns: "minmax(250px, 2fr) 130px 130px 130px 170px" }}>
+            <span>User Account</span>
+            <span>Role</span>
+            <span>Date Added</span>
+            <span>Last Active</span>
+            <span style={{ textAlign: "right" }}>Actions</span>
+          </div>
+
+          {loading ? (
+            <div className="cms-table-empty">
+              <strong>Loading users…</strong>
+              <span>Fetching Firebase Auth records.</span>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="cms-table-empty">
+              <strong>No matching user accounts</strong>
+              <span>Try a different search term or add a new admin.</span>
+            </div>
+          ) : (
+            filteredUsers.map((user) => {
+              const initials = (user.email || "U").slice(0, 2).toUpperCase();
+              const isUserSuperAdmin = user.role === "superadmin";
+
+              return (
+                <div
+                  className="cms-table-row"
+                  key={user.uid}
+                  role="row"
+                  style={{ gridTemplateColumns: "minmax(250px, 2fr) 130px 130px 130px 170px", cursor: "default" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div
+                      style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: isUserSuperAdmin ? "#e11d48" : "#0f172a",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials}
+                    </div>
+                    <div className="cms-table-title">
+                      <strong>{user.email} {user.email === currentUserEmail ? <span style={{ color: "#2563eb", fontSize: "11px", fontWeight: 500 }}>(You)</span> : null}</strong>
+                      <small style={{ fontFamily: "monospace", fontSize: "10px", color: "#94a3b8" }}>UID: {user.uid}</small>
+                    </div>
+                  </div>
+
+                  <div>
+                    {isSuperAdmin ? (
+                      <select
+                        value={user.role || "admin"}
+                        onChange={(e) => updateUserRole(user.uid, user.email, e.target.value as "superadmin" | "admin")}
+                        style={{
+                          padding: "4px 8px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          border: "1px solid #cbd5e1",
+                          background: isUserSuperAdmin ? "#fff1f2" : "#f8fafc",
+                          color: isUserSuperAdmin ? "#be123c" : "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <option value="superadmin">Super Admin</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    ) : (
+                      <span
+                        className="cms-status-badge"
+                        style={{
+                          background: isUserSuperAdmin ? "#fff1f2" : "#f1f5f9",
+                          color: isUserSuperAdmin ? "#be123c" : "#475569",
+                        }}
+                      >
+                        {isUserSuperAdmin ? "Super Admin" : "Admin"}
+                      </span>
+                    )}
+                  </div>
+
+                  <span style={{ color: "#64748b", fontSize: "12px" }}>
+                    {user.creationTime ? new Date(user.creationTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                  </span>
+
+                  <span style={{ color: "#64748b", fontSize: "12px" }}>
+                    {user.lastSignInTime ? new Date(user.lastSignInTime).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Never signed in"}
+                  </span>
+
+                  <div style={{ textAlign: "right", display: "flex", justifyContent: "flex-end", gap: "6px" }}>
+                    {isSuperAdmin ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setResetPasswordTarget({ uid: user.uid, email: user.email });
+                            setNewPassword("");
+                            setResetError("");
+                          }}
+                          style={{
+                            color: "#2563eb",
+                            background: "none",
+                            border: "1px solid #bfdbfe",
+                            padding: "5px 10px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                          title="Reset Password"
+                        >
+                          Password
+                        </button>
+                        {user.email !== currentUserEmail ? (
+                          <button
+                            onClick={() => deleteUser(user.uid, user.email)}
+                            style={{
+                              color: "#ef4444",
+                              background: "none",
+                              border: "1px solid #fecaca",
+                              padding: "5px 10px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                            title="Revoke User"
+                          >
+                            Revoke
+                          </button>
+                        ) : null}
+                      </>
+                    ) : (
+                      <span style={{ color: "#94a3b8", fontSize: "12px" }}>—</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      {showAddModal && isSuperAdmin && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ width: "100%", maxWidth: "440px", background: "#fff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ padding: "24px 28px 18px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p className="cms-eyebrow" style={{ margin: 0 }}>New Credentials</p>
+                <h2 style={{ margin: "4px 0 0", fontSize: "20px", fontWeight: 700, color: "#0f172a" }}>Add Admin User</h2>
+              </div>
+              <button onClick={() => setShowAddModal(false)} style={{ background: "none", border: "none", fontSize: "20px", color: "#64748b", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <form onSubmit={createUser} style={{ padding: "24px 28px", display: "grid", gap: "18px" }}>
+              {actionError && (
+                <div style={{ padding: "10px 14px", background: "#fef2f2", color: "#ef4444", borderRadius: "6px", fontSize: "13px", border: "1px solid #fecaca" }}>
+                  {actionError}
+                </div>
+              )}
+
+              <label className="cms-field" style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Email Address</span>
+                <input
+                  type="email"
+                  placeholder="admin@digitalcommercecoalition.org"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  style={{ width: "100%", minHeight: "44px", padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", outline: "none" }}
+                />
+              </label>
+
+              <label className="cms-field" style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>Password</span>
+                <input
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  style={{ width: "100%", minHeight: "44px", padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", outline: "none" }}
+                />
+              </label>
+
+              <label className="cms-field" style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>User Access Role</span>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as "superadmin" | "admin")}
+                  style={{ width: "100%", minHeight: "44px", padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", outline: "none", background: "#fff" }}
+                >
+                  <option value="admin">Admin (Can edit content, cannot manage users)</option>
+                  <option value="superadmin">Super Admin (Full access: can edit content & manage users)</option>
+                </select>
+              </label>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  className="cms-secondary-button"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="cms-primary-button"
+                  disabled={isCreating}
+                >
+                  {isCreating ? "Creating account…" : "Create user"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {resetPasswordTarget && isSuperAdmin && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" }}>
+          <div style={{ width: "100%", maxWidth: "420px", background: "#fff", borderRadius: "14px", border: "1px solid #e2e8f0", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p className="cms-eyebrow" style={{ margin: 0 }}>Security</p>
+                <h2 style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 700, color: "#0f172a" }}>Reset Password</h2>
+              </div>
+              <button onClick={() => setResetPasswordTarget(null)} style={{ background: "none", border: "none", fontSize: "18px", color: "#64748b", cursor: "pointer" }}>✕</button>
+            </div>
+
+            <form onSubmit={handleResetPassword} style={{ padding: "20px 24px", display: "grid", gap: "16px" }}>
+              <p style={{ margin: 0, fontSize: "13px", color: "#64748b" }}>
+                Setting a new password for <strong>{resetPasswordTarget.email}</strong>.
+              </p>
+
+              {resetError && (
+                <div style={{ padding: "10px 14px", background: "#fef2f2", color: "#ef4444", borderRadius: "6px", fontSize: "13px", border: "1px solid #fecaca" }}>
+                  {resetError}
+                </div>
+              )}
+
+              <label className="cms-field" style={{ display: "grid", gap: "6px" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: "#334155" }}>New Password</span>
+                <input
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  autoFocus
+                  style={{ width: "100%", minHeight: "44px", padding: "0 12px", border: "1px solid #cbd5e1", borderRadius: "8px", fontSize: "14px", outline: "none" }}
+                />
+              </label>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  className="cms-secondary-button"
+                  onClick={() => setResetPasswordTarget(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="cms-primary-button"
+                  disabled={isResetting}
+                >
+                  {isResetting ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
