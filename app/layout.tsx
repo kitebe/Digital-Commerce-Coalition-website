@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: {
@@ -24,6 +25,8 @@ const stylesheets = [
   "/error-pages.css",
 ];
 
+const gaId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-XE811YB09G";
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -38,7 +41,28 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <link key={href} rel="stylesheet" href={href} />
         ))}
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
+        {children}
+      </body>
     </html>
   );
 }
+

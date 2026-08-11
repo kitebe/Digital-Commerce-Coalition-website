@@ -257,6 +257,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const [slugUnlocked, setSlugUnlocked] = useState(false);
   const [viewMode, setViewMode] = useState<"visual" | "form">("visual");
   const [showUsers, setShowUsers] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
 
   const items = useMemo(() => content && activeCollection ? getItems(content, activeCollection) : [], [activeCollection, content]);
   const isNew = selectedId === "new";
@@ -328,7 +329,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const closeEditor = async () => { if (await canLeaveEditor()) resetEditor(); };
   const selectCollection = async (collection: CmsCollection, id?: string) => {
     if (!(await canLeaveEditor())) return;
-    setActiveCollection(collection); setShowUsers(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
+    setActiveCollection(collection); setShowUsers(false); setShowAnalytics(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
     if (id && content) {
       const item = getItems(content, collection).find((entry) => entry.id === id);
       if (item) { const next = clone(item as unknown as EditorItem); migrateDates(next, collection); setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); }
@@ -464,9 +465,10 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
       <aside className="cms-sidebar">
         <a className="cms-brand" href="/admin" aria-label="Digital Commerce Coalition CMS" style={{ padding: "6px 2px 0", marginBottom: "44px" }}><img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" style={{ height: "48px", width: "auto", maxWidth: "205px", objectFit: "contain" }} /></a>
         <nav className="cms-nav" aria-label="CMS sections">
-          <button className={!activeCollection && !showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); resetEditor(); } })()}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
-          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers ? "is-active" : ""} onClick={() => void selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
-          <button className={showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowUsers(true); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
+          <button className={!activeCollection && !showUsers && !showAnalytics ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); setShowAnalytics(false); resetEditor(); } })()}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
+          <button className={showAnalytics ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowAnalytics(true); setShowUsers(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span><span>Analytics</span></button>
+          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers && !showAnalytics ? "is-active" : ""} onClick={() => void selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
+          <button className={showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowUsers(true); setShowAnalytics(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
         </nav>
         <div className="cms-sidebar-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 10px' }}>
@@ -476,7 +478,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
         </div>
       </aside>
       <main className="cms-main">
-        {showUsers ? <CmsUsers /> : !activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
+        {showUsers ? <CmsUsers /> : showAnalytics ? <CmsAnalytics /> : !activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
           <>
             {(!draft || activeCollection === "members") ? (
               <>
@@ -1611,6 +1613,446 @@ function CmsLogin({ error }: { error: string }) {
 
 function CmsSetup() {
   return <main className="cms-auth-page"><section className="cms-login-card cms-setup-card"><p className="cms-eyebrow">Setup required</p><h1>Secure your content studio</h1><p>Add these values to <code>.env.local</code>, then restart the development server.</p><pre>CMS_PASSWORD=your-strong-password{"\n"}CMS_SECRET=your-long-random-secret</pre><a className="cms-back-link" href="/">← Back to website</a></section></main>;
+}
+
+type AnalyticsData = {
+  measurementId: string;
+  propertyId: string;
+  status: string;
+  period: string;
+  metrics: {
+    totalViews: string;
+    uniqueVisitors: string;
+    avgDuration: string;
+    bounceRate: string;
+    viewsGrowth: string;
+    visitorsGrowth: string;
+  };
+  trendData: Array<{ date: string; views: number; visitors: number }>;
+  topPages: Array<{ path: string; title: string; views: number; pct: string }>;
+  trafficSources: Array<{ name: string; share: number; color: string }>;
+  deviceBreakdown: Array<{ type: string; share: number; icon: string }>;
+};
+
+function CmsAnalyticsChart({ trendData }: { trendData: Array<{ date: string; views: number; visitors: number }> }) {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+
+  if (!trendData || trendData.length === 0) return null;
+
+  const width = 800;
+  const height = 220;
+  const paddingLeft = 45;
+  const paddingRight = 20;
+  const paddingTop = 25;
+  const paddingBottom = 35;
+
+  const chartW = width - paddingLeft - paddingRight;
+  const chartH = height - paddingTop - paddingBottom;
+
+  const maxViews = Math.max(...trendData.map((d) => d.views), 10);
+  const gridCeil = Math.ceil(maxViews / 100) * 100 || maxViews;
+
+  const points = trendData.map((d, i) => {
+    const x = paddingLeft + (i / Math.max(trendData.length - 1, 1)) * chartW;
+    const y = paddingTop + chartH - (d.views / gridCeil) * chartH;
+    return { x, y, date: d.date, views: d.views, visitors: d.visitors };
+  });
+
+  const lineD = points.reduce((acc, pt, i, arr) => {
+    if (i === 0) return `M ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+    const prev = arr[i - 1];
+    const cx1 = prev.x + (pt.x - prev.x) / 2;
+    const cy1 = prev.y;
+    const cx2 = prev.x + (pt.x - prev.x) / 2;
+    const cy2 = pt.y;
+    return `${acc} C ${cx1.toFixed(1)},${cy1.toFixed(1)} ${cx2.toFixed(1)},${cy2.toFixed(1)} ${pt.x.toFixed(1)},${pt.y.toFixed(1)}`;
+  }, "");
+
+  const areaD = `${lineD} L ${points[points.length - 1].x.toFixed(1)},${(paddingTop + chartH).toFixed(1)} L ${paddingLeft},${(paddingTop + chartH).toFixed(1)} Z`;
+
+  const ySteps = [0, 0.33, 0.66, 1];
+
+  const labelIndices: number[] = [];
+  const count = trendData.length;
+  const step = Math.max(1, Math.floor(count / 5));
+  for (let i = 0; i < count; i += step) labelIndices.push(i);
+  if (labelIndices[labelIndices.length - 1] !== count - 1) labelIndices.push(count - 1);
+
+  const activePoint = activeIdx !== null ? points[activeIdx] : null;
+
+  return (
+    <div className="cms-svg-chart-wrap">
+      <div className="cms-chart-hover-header">
+        {activePoint ? (
+          <div className="cms-chart-active-info">
+            <strong>{activePoint.date}</strong>
+            <span style={{ color: "#e11d48", fontWeight: 700 }}>{activePoint.views.toLocaleString()} views</span>
+            <span style={{ color: "#64748b" }}>({activePoint.visitors.toLocaleString()} visitors)</span>
+          </div>
+        ) : (
+          <div className="cms-chart-active-info">
+            <span style={{ color: "#64748b", fontSize: "12px" }}>Hover over the trend line for daily details</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ position: "relative", width: "100%", flex: 1, display: "flex", alignItems: "center" }}>
+        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: "100%", flex: 1, overflow: "visible", display: "block" }}>
+          <defs>
+            <linearGradient id="viewsAreaGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#e11d48" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#e11d48" stopOpacity="0.0" />
+            </linearGradient>
+            <filter id="dotShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#e11d48" floodOpacity="0.3" />
+            </filter>
+          </defs>
+
+          {ySteps.map((fraction, idx) => {
+            const yVal = paddingTop + chartH - fraction * chartH;
+            const labelVal = Math.round(fraction * gridCeil);
+            return (
+              <g key={idx}>
+                <line x1={paddingLeft} y1={yVal} x2={width - paddingRight} y2={yVal} stroke="#e2e8f0" strokeDasharray={idx === 0 ? "none" : "3,3"} strokeWidth="1" />
+                <text x={paddingLeft - 8} y={yVal + 4} textAnchor="end" fontSize="10" fill="#94a3b8" fontWeight="500">
+                  {labelVal >= 1000 ? `${(labelVal / 1000).toFixed(1)}k` : labelVal}
+                </text>
+              </g>
+            );
+          })}
+
+          <path d={areaD} fill="url(#viewsAreaGradient)" />
+          <path d={lineD} fill="none" stroke="#e11d48" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+          {labelIndices.map((idx) => {
+            const pt = points[idx];
+            if (!pt) return null;
+            return (
+              <text key={idx} x={pt.x} y={height - 8} textAnchor="middle" fontSize="10" fill="#64748b" fontWeight="500">
+                {pt.date}
+              </text>
+            );
+          })}
+
+          {activePoint && (
+            <g>
+              <line x1={activePoint.x} y1={paddingTop} x2={activePoint.x} y2={paddingTop + chartH} stroke="#e11d48" strokeWidth="1.5" strokeDasharray="4,4" />
+              <circle cx={activePoint.x} cy={activePoint.y} r="6" fill="#ffffff" stroke="#e11d48" strokeWidth="3" filter="url(#dotShadow)" />
+            </g>
+          )}
+
+          {points.map((pt, i) => {
+            const rectW = chartW / points.length;
+            const rectX = pt.x - rectW / 2;
+            return (
+              <rect
+                key={i}
+                x={rectX}
+                y={paddingTop}
+                width={rectW}
+                height={chartH}
+                fill="transparent"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={() => setActiveIdx(i)}
+                onMouseLeave={() => setActiveIdx(null)}
+              />
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function CmsBarChart({ trendData, period }: { trendData: Array<{ date: string; views: number; visitors: number }>; period: string }) {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  if (!trendData || trendData.length === 0) return null;
+
+  const maxViews = Math.max(...trendData.map((d) => d.views), 10);
+  const gridCeil = Math.ceil(maxViews / 100) * 100 || maxViews;
+  const activePoint = activeIdx !== null ? trendData[activeIdx] : null;
+
+  const totalItems = trendData.length;
+  const step = period === "7d" ? 1 : period === "30d" ? 5 : 12;
+
+  return (
+    <div className="cms-svg-chart-wrap">
+      <div className="cms-chart-hover-header">
+        {activePoint ? (
+          <div className="cms-chart-active-info">
+            <strong>{activePoint.date}</strong>
+            <span style={{ color: "#e11d48", fontWeight: 700 }}>{activePoint.views.toLocaleString()} views</span>
+            <span style={{ color: "#64748b" }}>({activePoint.visitors.toLocaleString()} visitors)</span>
+          </div>
+        ) : (
+          <div className="cms-chart-active-info">
+            <span style={{ color: "#64748b", fontSize: "12px" }}>Hover over any bar for daily view breakdown</span>
+          </div>
+        )}
+      </div>
+
+      <div className="cms-bar-chart-container">
+        {trendData.map((item, idx) => {
+          const heightPct = Math.max(8, Math.round((item.views / gridCeil) * 100));
+          const showLabel = idx % step === 0 || idx === totalItems - 1;
+          const isHovered = activeIdx === idx;
+
+          return (
+            <div
+              key={idx}
+              className={`cms-bar-col ${isHovered ? "is-hovered" : ""}`}
+              onMouseEnter={() => setActiveIdx(idx)}
+              onMouseLeave={() => setActiveIdx(null)}
+            >
+              <div className="cms-bar-col-track">
+                <div
+                  className="cms-bar-col-fill"
+                  style={{
+                    height: `${heightPct}%`,
+                    backgroundColor: isHovered ? "#be123c" : "#e11d48",
+                  }}
+                />
+              </div>
+              <span className="cms-bar-col-label">{showLabel ? item.date : ""}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function CmsAnalytics() {
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
+  const [chartType, setChartType] = useState<"area" | "bar">("area");
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchAnalytics = useCallback(async (p: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/cms/analytics?period=${p}`);
+      if (!res.ok) throw new Error("Failed to load analytics data.");
+      const result = await res.json();
+      setData(result);
+      setError("");
+    } catch (e: any) {
+      setError(e.message || "Could not fetch analytics.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics(period);
+  }, [period, fetchAnalytics]);
+
+  if (loading && !data) {
+    return (
+      <div className="cms-overview">
+        <header className="cms-page-header">
+          <div>
+            <p className="cms-eyebrow">Traffic & Insights</p>
+            <h1>Analytics Dashboard</h1>
+            <p>Loading analytics and Google Analytics metrics…</p>
+          </div>
+        </header>
+        <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b" }}>
+          Fetching performance metrics…
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="cms-overview">
+      <header className="cms-page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+        <div>
+          <p className="cms-eyebrow">Traffic & Insights</p>
+          <h1>Analytics Dashboard</h1>
+          <p>Real-time site traffic, page performance, and Google Analytics 4 integration.</p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="cms-filter-tabs" aria-label="Time period filter">
+            {(["7d", "30d", "90d"] as const).map((p) => (
+              <button
+                key={p}
+                className={period === p ? "is-active" : ""}
+                onClick={() => setPeriod(p)}
+              >
+                {p === "7d" ? "7 Days" : p === "30d" ? "30 Days" : "90 Days"}
+              </button>
+            ))}
+          </div>
+          <a
+            href="https://analytics.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cms-primary-button"
+            style={{ textDecoration: "none", fontSize: "13px" }}
+          >
+            <span>↗</span> GA4 Console
+          </a>
+        </div>
+      </header>
+
+      {error ? (
+        <div style={{ padding: "14px 18px", background: "#fef2f2", color: "#991b1b", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "20px", fontSize: "13px" }}>
+          {error}
+        </div>
+      ) : null}
+
+      <div className="cms-analytics-banner">
+        <div className="cms-analytics-status">
+          <span className="cms-pulse-dot" />
+          <span>
+            <strong>Google Analytics 4 Active:</strong> Tag ID <code>{data?.measurementId || "G-XE811YB09G"}</code> is tracking live site traffic.
+          </span>
+        </div>
+        <span className="cms-badge-connected">GA4 Active</span>
+      </div>
+
+      <section className="cms-stats-grid" aria-label="Traffic summary">
+        <div>
+          <span>Total Page Views</span>
+          <strong>{data?.metrics.totalViews}</strong>
+          <small>Views across all Coalition pages ({data?.metrics.viewsGrowth})</small>
+        </div>
+
+        <div>
+          <span>Unique Visitors</span>
+          <strong>{data?.metrics.uniqueVisitors}</strong>
+          <small>Distinct session users ({data?.metrics.visitorsGrowth})</small>
+        </div>
+
+        <div>
+          <span>Avg. Session Duration</span>
+          <strong>{data?.metrics.avgDuration}</strong>
+          <small>Average engagement time</small>
+        </div>
+
+        <div>
+          <span>Bounce Rate</span>
+          <strong>{data?.metrics.bounceRate}</strong>
+          <small>Single page view sessions</small>
+        </div>
+      </section>
+
+      <div className="cms-analytics-main-grid">
+        <section className="cms-recent-card cms-chart-card">
+          <div className="cms-section-heading" style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--cms-line)", margin: 0 }}>
+            <div>
+              <h2>Page Views & Traffic Trends</h2>
+              <p>Daily view count over the last {period === "7d" ? "7 days" : period === "90d" ? "90 days" : "30 days"}</p>
+            </div>
+            <div className="cms-filter-tabs" style={{ padding: "2px" }}>
+              <button
+                className={chartType === "area" ? "is-active" : ""}
+                onClick={() => setChartType("area")}
+                style={{ padding: "4px 10px", fontSize: "11px" }}
+              >
+                📈 Line
+              </button>
+              <button
+                className={chartType === "bar" ? "is-active" : ""}
+                onClick={() => setChartType("bar")}
+                style={{ padding: "4px 10px", fontSize: "11px" }}
+              >
+                📊 Bars
+              </button>
+            </div>
+          </div>
+
+          <div style={{ padding: "20px 22px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
+            {chartType === "area" ? (
+              <CmsAnalyticsChart trendData={data?.trendData || []} />
+            ) : (
+              <CmsBarChart trendData={data?.trendData || []} period={period} />
+            )}
+          </div>
+        </section>
+
+        <section className="cms-recent-card" style={{ display: "flex", flexDirection: "column" }}>
+          <div className="cms-section-heading" style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--cms-line)", margin: 0 }}>
+            <div>
+              <h2>Traffic Sources</h2>
+              <p>Channels driving visitors</p>
+            </div>
+          </div>
+
+          <div className="cms-recent-list" style={{ flex: 1 }}>
+            {data?.trafficSources.map((source, idx) => (
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "34px minmax(0, 1fr) 50px", gap: "14px", alignItems: "center", padding: "12px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
+                <span className="cms-recent-icon" style={{ background: source.color }}>{source.name.charAt(0)}</span>
+                <div>
+                  <strong style={{ fontSize: "12px", color: "var(--cms-ink)", display: "block" }}>{source.name}</strong>
+                  <div className="cms-progress-bg" style={{ marginTop: "4px", height: "6px" }}>
+                    <div className="cms-progress-fill" style={{ width: `${source.share}%`, backgroundColor: source.color }} />
+                  </div>
+                </div>
+                <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)", textAlign: "right" }}>{source.share}%</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ padding: "18px 22px 20px", borderTop: "1px solid var(--cms-line)", background: "#fafafb" }}>
+            <div className="cms-section-heading" style={{ marginBottom: "12px" }}>
+              <div>
+                <h2>Device Breakdown</h2>
+                <p>Session devices</p>
+              </div>
+            </div>
+            <div className="cms-device-grid">
+              {data?.deviceBreakdown.map((dev, idx) => (
+                <div key={idx} style={{ display: "flex", flexDirection: "column", padding: "12px", border: "1px solid var(--cms-line)", borderRadius: "8px", background: "#fff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <span className="cms-recent-icon" style={{ width: "26px", height: "26px", fontSize: "10px" }}>{dev.type.charAt(0)}</span>
+                    <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)" }}>{dev.share}%</span>
+                  </div>
+                  <strong style={{ fontSize: "12px", color: "var(--cms-ink)" }}>{dev.type}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="cms-recent-card" style={{ marginTop: "28px" }}>
+        <div className="cms-section-heading" style={{ padding: "20px 22px 16px", borderBottom: "1px solid var(--cms-line)", margin: 0 }}>
+          <div>
+            <h2>Top Performing Content & Pages</h2>
+            <p>Ranked by total page views across the site</p>
+          </div>
+        </div>
+        <div className="cms-analytics-table-wrap">
+          <div className="cms-content-table" role="table" aria-label="Top pages" style={{ minWidth: "560px" }}>
+            <div className="cms-table-head" role="row" style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 100px 140px", padding: "12px 22px", background: "#f8fafc", borderBottom: "1px solid var(--cms-line)", fontWeight: 700, fontSize: "11px", color: "var(--cms-muted)", textTransform: "uppercase", letterSpacing: ".06em" }}>
+              <span>Page Path</span>
+              <span>Title / Section</span>
+              <span>Views</span>
+              <span>Traffic Share</span>
+            </div>
+            {data?.topPages.map((pg, idx) => (
+              <div key={idx} className="cms-table-row" role="row" style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 100px 140px", alignItems: "center", padding: "14px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
+                <span className="cms-table-title">
+                  <code style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "5px", fontSize: "12px", color: "var(--cms-ink)", fontWeight: 600, wordBreak: "break-all" }}>{pg.path}</code>
+                </span>
+                <span style={{ fontSize: "13px", color: "var(--cms-ink)", fontWeight: 600 }}>{pg.title}</span>
+                <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: '"Beaufort for LOL", Georgia, serif', color: "var(--cms-ink)" }}>{pg.views.toLocaleString()}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <div className="cms-progress-bg" style={{ flex: 1, height: "6px" }}>
+                    <div className="cms-progress-fill" style={{ width: pg.pct, backgroundColor: "var(--cms-accent)", height: "100%", borderRadius: "3px" }} />
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--cms-muted)", minWidth: "30px" }}>{pg.pct}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function CmsUsers() {
