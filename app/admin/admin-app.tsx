@@ -1616,9 +1616,13 @@ function CmsSetup() {
 }
 
 type AnalyticsData = {
+  isLive?: boolean;
   measurementId: string;
   propertyId: string;
   status: string;
+  serviceEmail?: string;
+  setupNotice?: string;
+  errorDetails?: string;
   period: string;
   metrics: {
     totalViews: string;
@@ -1637,7 +1641,13 @@ type AnalyticsData = {
 function CmsAnalyticsChart({ trendData }: { trendData: Array<{ date: string; views: number; visitors: number }> }) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
 
-  if (!trendData || trendData.length === 0) return null;
+  if (!trendData || trendData.length === 0) {
+    return (
+      <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+        No page view trend data recorded for this period yet.
+      </div>
+    );
+  }
 
   const width = 800;
   const height = 220;
@@ -1766,7 +1776,13 @@ function CmsAnalyticsChart({ trendData }: { trendData: Array<{ date: string; vie
 
 function CmsBarChart({ trendData, period }: { trendData: Array<{ date: string; views: number; visitors: number }>; period: string }) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
-  if (!trendData || trendData.length === 0) return null;
+  if (!trendData || trendData.length === 0) {
+    return (
+      <div style={{ padding: "40px 20px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+        No page view trend data recorded for this period yet.
+      </div>
+    );
+  }
 
   const maxViews = Math.max(...trendData.map((d) => d.views), 10);
   const gridCeil = Math.ceil(maxViews / 100) * 100 || maxViews;
@@ -1903,15 +1919,54 @@ function CmsAnalytics() {
         </div>
       ) : null}
 
-      <div className="cms-analytics-banner">
+      {data?.errorDetails ? (
+        <div style={{ padding: "14px 18px", background: "#fef2f2", color: "#991b1b", borderRadius: "8px", border: "1px solid #fecaca", marginBottom: "20px", fontSize: "13px" }}>
+          <strong>Google Analytics API Error:</strong> {data.errorDetails}
+          <div style={{ marginTop: "6px", fontSize: "12px" }}>
+            Make sure <code>{data.serviceEmail || "your service account"}</code> has the <strong>Viewer</strong> role in Google Analytics Admin &gt; Property Access Management.
+          </div>
+        </div>
+      ) : null}
+
+      <div className="cms-analytics-banner" style={{ background: data?.isLive ? "rgba(16, 185, 129, 0.08)" : "rgba(245, 158, 11, 0.08)", borderColor: data?.isLive ? "rgba(16, 185, 129, 0.25)" : "rgba(245, 158, 11, 0.25)" }}>
         <div className="cms-analytics-status">
-          <span className="cms-pulse-dot" />
+          <span className="cms-pulse-dot" style={{ background: data?.isLive ? "#10b981" : "#f59e0b" }} />
           <span>
-            <strong>Google Analytics 4 Active:</strong> Tag ID <code>{data?.measurementId || "G-XE811YB09G"}</code> is tracking live site traffic.
+            {data?.isLive ? (
+              <>
+                <strong>Google Analytics 4 Live API:</strong> Tag ID <code>{data?.measurementId}</code> | Property <code>{data?.propertyId}</code>
+              </>
+            ) : (
+              <>
+                <strong>Tracking Active:</strong> Tag ID <code>{data?.measurementId || "G-R28WH8G0TH"}</code> is recording visits in Google Analytics.
+              </>
+            )}
           </span>
         </div>
-        <span className="cms-badge-connected">GA4 Active</span>
+        <span className="cms-badge-connected" style={{ background: data?.isLive ? "#10b981" : "#f59e0b", color: "#fff" }}>
+          {data?.isLive ? "GA4 Live API" : "Tag Active"}
+        </span>
       </div>
+
+      {!data?.isLive && (
+        <div style={{ padding: "18px 22px", background: "#fff", border: "1px solid var(--cms-line)", borderRadius: "10px", marginBottom: "24px", display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
+          <strong style={{ fontSize: "14px", color: "var(--cms-ink)" }}>⚡ To enable live Google Analytics Data API inside this dashboard:</strong>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px", marginTop: "4px" }}>
+            <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <div style={{ fontWeight: 600, color: "#1e293b", marginBottom: "4px" }}>1. Add Property ID to .env.local</div>
+              <div style={{ color: "#64748b", fontSize: "12px" }}>
+                In GA Admin &gt; Property Settings, copy the numeric <strong>Property ID</strong> and add <code>GA_PROPERTY_ID=123456789</code> to <code>.env.local</code>.
+              </div>
+            </div>
+            <div style={{ padding: "12px 14px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <div style={{ fontWeight: 600, color: "#1e293b", marginBottom: "4px" }}>2. Grant Service Account Access</div>
+              <div style={{ color: "#64748b", fontSize: "12px" }}>
+                In GA Admin &gt; <strong>Property Access Management</strong>, add <code>{data?.serviceEmail || "firebase-adminsdk-fbsvc@digitalcommercecoalition.iam.gserviceaccount.com"}</code> as <strong>Viewer</strong>.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <section className="cms-stats-grid" aria-label="Traffic summary">
         <div>
@@ -1982,18 +2037,24 @@ function CmsAnalytics() {
           </div>
 
           <div className="cms-recent-list" style={{ flex: 1 }}>
-            {data?.trafficSources.map((source, idx) => (
-              <div key={idx} style={{ display: "grid", gridTemplateColumns: "34px minmax(0, 1fr) 50px", gap: "14px", alignItems: "center", padding: "12px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
-                <span className="cms-recent-icon" style={{ background: source.color }}>{source.name.charAt(0)}</span>
-                <div>
-                  <strong style={{ fontSize: "12px", color: "var(--cms-ink)", display: "block" }}>{source.name}</strong>
-                  <div className="cms-progress-bg" style={{ marginTop: "4px", height: "6px" }}>
-                    <div className="cms-progress-fill" style={{ width: `${source.share}%`, backgroundColor: source.color }} />
-                  </div>
-                </div>
-                <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)", textAlign: "right" }}>{source.share}%</span>
+            {(!data?.trafficSources || data.trafficSources.length === 0) ? (
+              <div style={{ padding: "30px 22px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+                No traffic source data recorded yet.
               </div>
-            ))}
+            ) : (
+              data.trafficSources.map((source, idx) => (
+                <div key={idx} style={{ display: "grid", gridTemplateColumns: "34px minmax(0, 1fr) 50px", gap: "14px", alignItems: "center", padding: "12px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
+                  <span className="cms-recent-icon" style={{ background: source.color }}>{source.name.charAt(0)}</span>
+                  <div>
+                    <strong style={{ fontSize: "12px", color: "var(--cms-ink)", display: "block" }}>{source.name}</strong>
+                    <div className="cms-progress-bg" style={{ marginTop: "4px", height: "6px" }}>
+                      <div className="cms-progress-fill" style={{ width: `${source.share}%`, backgroundColor: source.color }} />
+                    </div>
+                  </div>
+                  <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)", textAlign: "right" }}>{source.share}%</span>
+                </div>
+              ))
+            )}
           </div>
 
           <div style={{ padding: "18px 22px 20px", borderTop: "1px solid var(--cms-line)", background: "#fafafb" }}>
@@ -2004,15 +2065,21 @@ function CmsAnalytics() {
               </div>
             </div>
             <div className="cms-device-grid">
-              {data?.deviceBreakdown.map((dev, idx) => (
-                <div key={idx} style={{ display: "flex", flexDirection: "column", padding: "12px", border: "1px solid var(--cms-line)", borderRadius: "8px", background: "#fff" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <span className="cms-recent-icon" style={{ width: "26px", height: "26px", fontSize: "10px" }}>{dev.type.charAt(0)}</span>
-                    <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)" }}>{dev.share}%</span>
-                  </div>
-                  <strong style={{ fontSize: "12px", color: "var(--cms-ink)" }}>{dev.type}</strong>
+              {(!data?.deviceBreakdown || data.deviceBreakdown.length === 0) ? (
+                <div style={{ padding: "12px", textAlign: "center", color: "#64748b", fontSize: "12px", gridColumn: "1 / -1" }}>
+                  No device data recorded yet.
                 </div>
-              ))}
+              ) : (
+                data.deviceBreakdown.map((dev, idx) => (
+                  <div key={idx} style={{ display: "flex", flexDirection: "column", padding: "12px", border: "1px solid var(--cms-line)", borderRadius: "8px", background: "#fff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                      <span className="cms-recent-icon" style={{ width: "26px", height: "26px", fontSize: "10px" }}>{dev.type.charAt(0)}</span>
+                      <span style={{ fontFamily: '"Beaufort for LOL", Georgia, serif', fontSize: "18px", fontWeight: 700, color: "var(--cms-ink)" }}>{dev.share}%</span>
+                    </div>
+                    <strong style={{ fontSize: "12px", color: "var(--cms-ink)" }}>{dev.type}</strong>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </section>
@@ -2033,21 +2100,27 @@ function CmsAnalytics() {
               <span>Views</span>
               <span>Traffic Share</span>
             </div>
-            {data?.topPages.map((pg, idx) => (
-              <div key={idx} className="cms-table-row" role="row" style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 100px 140px", alignItems: "center", padding: "14px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
-                <span className="cms-table-title">
-                  <code style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "5px", fontSize: "12px", color: "var(--cms-ink)", fontWeight: 600, wordBreak: "break-all" }}>{pg.path}</code>
-                </span>
-                <span style={{ fontSize: "13px", color: "var(--cms-ink)", fontWeight: 600 }}>{pg.title}</span>
-                <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: '"Beaufort for LOL", Georgia, serif', color: "var(--cms-ink)" }}>{pg.views.toLocaleString()}</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div className="cms-progress-bg" style={{ flex: 1, height: "6px" }}>
-                    <div className="cms-progress-fill" style={{ width: pg.pct, backgroundColor: "var(--cms-accent)", height: "100%", borderRadius: "3px" }} />
-                  </div>
-                  <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--cms-muted)", minWidth: "30px" }}>{pg.pct}</span>
-                </div>
+            {(!data?.topPages || data.topPages.length === 0) ? (
+              <div style={{ padding: "30px 22px", textAlign: "center", color: "#64748b", fontSize: "13px" }}>
+                No page view data recorded yet.
               </div>
-            ))}
+            ) : (
+              data.topPages.map((pg, idx) => (
+                <div key={idx} className="cms-table-row" role="row" style={{ display: "grid", gridTemplateColumns: "2fr 1.5fr 100px 140px", alignItems: "center", padding: "14px 22px", borderBottom: "1px solid #eff0f2", background: "#fff" }}>
+                  <span className="cms-table-title">
+                    <code style={{ background: "#f1f5f9", padding: "3px 8px", borderRadius: "5px", fontSize: "12px", color: "var(--cms-ink)", fontWeight: 600, wordBreak: "break-all" }}>{pg.path}</code>
+                  </span>
+                  <span style={{ fontSize: "13px", color: "var(--cms-ink)", fontWeight: 600 }}>{pg.title}</span>
+                  <span style={{ fontSize: "14px", fontWeight: 700, fontFamily: '"Beaufort for LOL", Georgia, serif', color: "var(--cms-ink)" }}>{pg.views.toLocaleString()}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div className="cms-progress-bg" style={{ flex: 1, height: "6px" }}>
+                      <div className="cms-progress-fill" style={{ width: pg.pct, backgroundColor: "var(--cms-accent)", height: "100%", borderRadius: "3px" }} />
+                    </div>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--cms-muted)", minWidth: "30px" }}>{pg.pct}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
