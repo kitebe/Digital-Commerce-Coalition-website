@@ -10,7 +10,10 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const period = searchParams.get("period") || "30d";
-  const measurementId = process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-XE811YB09G";
+  const measurementId =
+    process.env.NEXT_PUBLIC_GA_ID ||
+    process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ||
+    "G-R28WH8G0TH";
   const propertyId = process.env.GA_PROPERTY_ID || "";
 
   // Multiplier for mock trend calculation based on selected period
