@@ -37,7 +37,11 @@ const respondToError = (error: unknown) => {
 
 export async function GET() {
   if (!(await isCmsAuthenticated())) return unauthorized();
-  return NextResponse.json(cmsRepository.read(), { headers: { "Cache-Control": "no-store" } });
+  try {
+    return NextResponse.json(await cmsRepository.read(), { headers: { "Cache-Control": "no-store" } });
+  } catch (error) {
+    return respondToError(error);
+  }
 }
 
 export async function POST(request: Request) {

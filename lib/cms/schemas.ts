@@ -8,6 +8,7 @@ import type {
 
 const safeString = z.string().max(20_000);
 const shortString = z.string().max(500);
+const assetString = z.string().max(4_000);
 const workflowSchema = z.object({
   id: z.string().min(1).max(100),
   version: z.number().int().min(1),
@@ -67,19 +68,22 @@ const validateRichNode = (node: RichTextNode, issues: string[], depth = 0) => {
 export const richTextDocumentSchema = safeString;
 
 const commonSlug = z.string().max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers, and hyphens only.");
-const exactDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a complete date.");
+const exactDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Choose a complete date.").refine((value) => {
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}, "Choose a valid calendar date.");
 const monthDate = z.string().regex(/^\d{4}-\d{2}$/, "Choose a month and year.");
 const stringList = z.array(shortString).max(100);
 
 export const entrySchemas = {
   blogPosts: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), date: exactDate.or(z.literal("")), category: shortString,
-    title: shortString, excerpt: safeString, author: shortString, image: shortString,
+    title: shortString, excerpt: safeString, author: shortString, image: assetString,
     imageAlt: shortString, intro: safeString.optional(), body: safeString, takeaways: stringList,
   }),
   events: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), eventDate: exactDate.or(z.literal("")).optional(), format: shortString.optional(),
-    title: shortString, summary: safeString.optional(), location: shortString.optional(), image: shortString.optional(),
+    title: shortString, summary: safeString.optional(), location: shortString.optional(), image: assetString.optional(),
     imageAlt: shortString.optional(), body: safeString.optional(), topics: stringList.optional(), linkLabel: shortString.optional(),
     aboutEyebrow: shortString.optional(), aboutHeading: shortString.optional(), topicsHeading: shortString.optional(),
   }),
@@ -89,14 +93,14 @@ export const entrySchemas = {
   publications: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), type: shortString.optional(), date: exactDate.or(z.literal("")).optional(),
     title: shortString, shortTitle: shortString.optional(), description: safeString.optional(), body: safeString.optional(),
-    coverImage: shortString.optional(), accent: z.enum(["cyan", "lavender", "violet"]).optional(),
+    coverImage: assetString.optional(), accent: z.enum(["cyan", "lavender", "violet"]).optional(),
     pdf: safeString.nullable().optional(), pages: shortString.nullable().optional(), themes: stringList.optional(),
   }),
   reports: workflowSchema.extend({
     slug: commonSlug.or(z.literal("")), type: shortString.optional(), date: exactDate.or(z.literal("")).optional(), title: shortString,
-    description: safeString.optional(), coverImage: shortString.optional(), pdf: safeString.nullable().optional(),
+    description: safeString.optional(), coverImage: assetString.optional(), pdf: safeString.nullable().optional(),
   }),
-  members: workflowSchema.extend({ name: shortString, logo: shortString, logoAlt: shortString }),
+  members: workflowSchema.extend({ name: shortString, logo: assetString, logoAlt: shortString }),
 } satisfies Record<CmsCollection, z.ZodType>;
 
 export type CmsFieldErrors = Record<string, string>;

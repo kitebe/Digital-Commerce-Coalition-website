@@ -16,7 +16,7 @@ export async function PageView({ page, requestedPreviewId }: { page: PageDefinit
   return (
     <>
       <script dangerouslySetInnerHTML={{ __html: getBodyClassScript(page.bodyClass) }} />
-      <div className="next-page-root" dangerouslySetInnerHTML={{ __html: markup }} />
+      <div key={runtime} className="next-page-root" dangerouslySetInnerHTML={{ __html: markup }} />
       <LegacyRuntime
         pageKey={page.source}
         runtime={runtime}

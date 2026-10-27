@@ -8,30 +8,36 @@
     "start": "next start",
     "seed:cms": "node scripts/seed-cms-content.mjs && node scripts/migrate-cms-v2.mjs",
     "migrate:cms-v2": "node scripts/migrate-cms-v2.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npm run test:store && playwright test",
+    "test:store": "node --test tests/store.test.mjs"
   },
   "dependencies": {
     "@google-analytics/data": "^7.0.0",
-    "@tiptap/extension-file-handler": "^3.29.2",
-    "@tiptap/extension-image": "^3.29.2",
-    "@tiptap/extension-table": "^3.29.2",
-    "@tiptap/extension-youtube": "^3.29.2",
-    "@tiptap/html": "^3.29.2",
-    "@tiptap/pm": "^3.29.2",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/extension-file-handler": "^3.32.0",
+    "@tiptap/extension-image": "^3.32.0",
+    "@tiptap/extension-table": "^3.32.0",
+    "@tiptap/extension-youtube": "^3.32.0",
+    "@tiptap/pm": "^3.32.0",
+    "@tiptap/react": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0",
     "firebase": "^12.17.1",
     "firebase-admin": "13.6.0",
     "jose": "^6.2.8",
-    "next": "16.3.0",
+    "next": "16.4.3",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "typescript": "^5.8.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6",
+    "uuid@<11.1.1": "11.1.1"
   }
 }

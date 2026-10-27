@@ -13,11 +13,9 @@ type LegacyRuntimeProps = {
   dynamicHead?: DynamicHead;
 };
 
-declare global {
-  interface Window {
-    __dccLegacyRuntimes?: Set<string>;
-  }
-}
+// Track the actual page DOM: revisiting a URL creates new markup that needs
+// initialization, while Strict Mode's second effect uses the same markup.
+const executedRoots = new WeakSet<Element>();
 
 export function LegacyRuntime({
   pageKey,
@@ -25,13 +23,9 @@ export function LegacyRuntime({
   dynamicHead,
 }: LegacyRuntimeProps) {
   useEffect(() => {
-    const runtimeKey = `${pageKey}:${window.location.pathname}:${window.location.search}`;
-    const executedRuntimes = (window.__dccLegacyRuntimes ??= new Set());
-
-    // React runs effects twice in development Strict Mode. The legacy scripts
-    // attach listeners and build cards imperatively, so they must execute once.
-    if (executedRuntimes.has(runtimeKey)) return;
-    executedRuntimes.add(runtimeKey);
+    const root = document.querySelector(".next-page-root");
+    if (!root || executedRoots.has(root)) return;
+    executedRoots.add(root);
 
     const script = document.createElement("script");
     script.textContent = runtime;

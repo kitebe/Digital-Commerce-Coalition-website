@@ -118,7 +118,11 @@ const collectionRouteBase: Partial<Record<CmsCollection, string>> = {
 };
 const newWorkflow = () => ({ id: "new", version: 0, publishState: "draft", createdAt: "", updatedAt: "" });
 
-const getTodayDate = () => new Date().toISOString().split("T")[0];
+const getTodayDate = () => {
+  const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
 const migrateDates = (next: EditorItem, collection: CmsCollection) => {
   if (collection === "blogPosts") {
     next.body = mergeCmsBlogIntro(next.intro, next.body);
@@ -229,21 +233,26 @@ const formatUpdatedAt = (value: unknown) => {
 const snapshot = (item: EditorItem | null) => item ? JSON.stringify(item) : "";
 
 export function AdminApp(props: AdminAppProps) {
-  return <AdminDialogProvider><AdminAppContent {...props} /></AdminDialogProvider>;
+  return <AdminDialogProvider><AdminAppContent key={props.authenticated ? "authenticated" : "anonymous"} {...props} /></AdminDialogProvider>;
 }
 
 function AdminAppContent({ configured, authenticated, initialContent, loginError }: AdminAppProps) {
   const router = useRouter();
   const dialog = useAdminDialog();
   const handleSignOut = async () => {
-    const auth = getClientAuth();
-    if (auth) {
-      await auth.signOut().catch((e) => console.error("Firebase signOut error", e));
+    if (!(await canLeaveEditor())) return;
+    try {
+      const response = await fetch("/api/cms/session", { method: "DELETE" });
+      if (!response.ok) throw new Error("Could not sign out. Please try again.");
+      const auth = getClientAuth();
+      if (auth) await auth.signOut();
+      router.refresh();
+    } catch {
+      setToast({ message: "Could not sign out. Please try again.", type: "error" });
     }
-    await fetch("/api/cms/session", { method: "DELETE" });
-    router.refresh();
   };
   const [content, setContent] = useState(initialContent);
+  useEffect(() => { setContent(initialContent); }, [initialContent]);
   const [activeCollection, setActiveCollection] = useState<CmsCollection | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<EditorItem | null>(null);
@@ -351,7 +360,19 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     setFieldErrors((current) => { const next = { ...current }; delete next[key]; return next; });
     setStatus("idle");
   };
-  const parseResponse = async (response: Response) => await response.json() as { content?: CmsContent; error?: string; fieldErrors?: Record<string, string> };
+  // Keep transport failures in the same recoverable path as API validation errors.
+  const requestCms = async (url: string, options: RequestInit): Promise<Response> => {
+    try {
+      return await fetch(url, options);
+    } catch {
+      return Response.json({ error: "Could not connect. Your changes are still here; please try again." }, { status: 503 });
+    }
+  };
+  const parseResponse = async (response: Response) => {
+    const result = await response.json().catch(() => ({ error: "The server could not complete the request. Please try again." }));
+    if (response.status === 401) return { error: "Your session has expired. Sign in again in another tab, then retry your changes." };
+    return result as { content?: CmsContent; error?: string; fieldErrors?: Record<string, string> };
+  };
   const applySaveResult = (result: { content?: CmsContent; error?: string; fieldErrors?: Record<string, string> }, response: Response, wasNew: boolean) => {
     if (!response.ok || !result.content || !activeCollection) {
       setStatus("error"); setToast({ message: result.error || "Could not save this entry.", type: "error" }); setFieldErrors(result.fieldErrors || {}); return false;
@@ -363,10 +384,10 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     setFieldErrors({}); setStatus("saved"); return true;
   };
   const saveItem = async (action: SaveAction) => {
-    if (!activeCollection || !draft) return;
+    if (!activeCollection || !draft || status === "saving" || uploadingField !== null) return;
     setStatus("saving");
     const wasNew = isNew;
-    const response = await fetch("/api/cms/content", {
+    const response = await requestCms("/api/cms/content", {
       method: wasNew ? "POST" : "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(wasNew
         ? { collection: activeCollection, action, item: draft }
@@ -393,7 +414,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     });
     if (!confirmed) return;
     setStatus("saving");
-    const response = await fetch("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: selectedId, version: draft.version }) });
+    const response = await requestCms("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: selectedId, version: draft.version }) });
     const result = await parseResponse(response);
     if (!response.ok || !result.content) { setStatus("error"); setToast({ message: result.error || "Could not delete this entry.", type: "error" }); return; }
     setContent(result.content); resetEditor();
@@ -405,7 +426,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     const destination = index + direction;
     if (index < 0 || destination < 0 || destination >= items.length) return;
     const ordered = [...items]; [ordered[index], ordered[destination]] = [ordered[destination], ordered[index]];
-    const response = await fetch("/api/cms/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, action: "reorder", orderedIds: ordered.map((item) => item.id) }) });
+    const response = await requestCms("/api/cms/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, action: "reorder", orderedIds: ordered.map((item) => item.id) }) });
     const result = await parseResponse(response);
     if (response.ok && result.content) setContent(result.content); else { setStatus("error"); setToast({ message: result.error || "Could not change display order.", type: "error" }); }
   };
@@ -416,7 +437,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     const destination = index + direction;
     if (index < 0 || destination < 0 || destination >= items.length) return;
     const ordered = [...items]; [ordered[index], ordered[destination]] = [ordered[destination], ordered[index]];
-    const response = await fetch("/api/cms/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, action: "reorder", orderedIds: ordered.map((item) => item.id) }) });
+    const response = await requestCms("/api/cms/content", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, action: "reorder", orderedIds: ordered.map((item) => item.id) }) });
     const result = await parseResponse(response);
     if (response.ok && result.content) setContent(result.content); else { setToast({ message: result.error || "Could not change display order.", type: "error" }); }
   };
@@ -430,7 +451,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
       tone: "danger",
     });
     if (!confirmed) return;
-    const response = await fetch("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: item.id, version: item.version }) });
+    const response = await requestCms("/api/cms/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ collection: activeCollection, id: item.id, version: item.version }) });
     const result = await parseResponse(response);
     if (!response.ok || !result.content) { setToast({ message: result.error || "Could not delete this entry.", type: "error" }); return; }
     setContent(result.content);
@@ -440,8 +461,8 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const uploadFile = async (file: File, fieldKey = "body") => {
     setUploadingField(fieldKey);
     const body = new FormData(); body.append("file", file);
-    const response = await fetch("/api/cms/media", { method: "POST", body });
-    const result = await response.json() as { url?: string; error?: string };
+    const response = await requestCms("/api/cms/media", { method: "POST", body });
+    const result = await response.json().catch(() => ({ error: "The upload could not complete. Please try again." })) as { url?: string; error?: string };
     setUploadingField(null);
     if (!response.ok || !result.url) { setStatus("error"); setToast({ message: result.error || "Upload failed.", type: "error" }); return undefined; }
     return result.url;
@@ -545,10 +566,17 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                 ) : null}
                 {!isNew ? <a className="cms-preview-button" href={`/api/cms/preview?collection=${activeCollection}&id=${selectedId}`} target="_blank" rel="noreferrer">Preview ↗</a> : null}
                 <button type="button" className="cms-danger-top-button" onClick={isNew ? () => void closeEditor() : () => void deleteItem()}>{isNew ? "Discard" : "Delete"}</button>
-                {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving"}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving"}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Unpublish this entry?", message: "The entry will be removed from the public website and returned to drafts.", confirmLabel: "Unpublish" }); if (confirmed) await saveItem("unpublish"); })()} disabled={status === "saving"}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving"}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
+                {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving" || uploadingField !== null}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving" || uploadingField !== null}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Unpublish this entry?", message: "The entry will be removed from the public website and returned to drafts.", confirmLabel: "Unpublish" }); if (confirmed) await saveItem("unpublish"); })()} disabled={status === "saving" || uploadingField !== null}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving" || uploadingField !== null}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
               </div>
             </header>
             <div className={`cms-editor-notice is-${status}`} role="status">{Object.keys(fieldErrors).length ? `Fix ${Object.keys(fieldErrors).length} highlighted field${Object.keys(fieldErrors).length === 1 ? "" : "s"}.` : (isDirty ? "Unsaved changes" : itemStatus(draft) === "published" ? "This entry is live on the website." : "This entry is only visible in the CMS.")}</div>
+            {Object.keys(fieldErrors).length > 0 ? (
+              <div className="cms-validation-summary" role="alert">
+                <strong>Complete these fields to save this entry:</strong>
+                <ul>{Object.entries(fieldErrors).map(([key, message]) => <li key={key}><strong>{key === "slug" ? "URL slug" : activeConfig?.fields.find((field) => field.key === key)?.label || key}:</strong> {message}</li>)}</ul>
+                {viewMode === "visual" ? <button type="button" className="cms-secondary-button" onClick={() => setViewMode("form")}>Open all fields</button> : null}
+              </div>
+            ) : null}
             
             {activeCollection === "blogPosts" && viewMode === "visual" ? (
               <VisualBlogEditor
@@ -1104,7 +1132,7 @@ function VisualEventEditor({
               className="cms-live-summary-input"
               style={{ minHeight: "200px" }}
               placeholder="Event details (HTML supported)..."
-              value={extractText(draft.body)}
+              value={cmsRichTextToHtml(draft.body)}
               onChange={(e) => updateDraft("body", e.target.value)}
             />
           </div>

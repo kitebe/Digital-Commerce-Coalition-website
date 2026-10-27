@@ -2307,3 +2307,6 @@ body.cms-body * { box-sizing: border-box; }
 
 
 
+
+.cms-validation-summary { margin: 16px 0; padding: 16px 20px; border: 1px solid #efb4b4; border-radius: 8px; background: #fff5f5; color: #8b2525; font-size: 14px; }
+.cms-validation-summary ul { margin: 8px 0 12px; padding-left: 20px; }

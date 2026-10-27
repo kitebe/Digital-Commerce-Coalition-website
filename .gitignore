@@ -9,3 +9,6 @@ public/uploads/*
 !public/uploads/.gitkeep
 .vercel
 .env*
+
+test-results/
+playwright-report/

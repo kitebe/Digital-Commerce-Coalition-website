@@ -67,11 +67,16 @@ export async function POST(request: Request) {
       const url = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(`uploads/${filename}`)}?alt=media&token=${token}`;
       return NextResponse.json({ url });
     } catch (error) {
-      console.error("Firebase Storage upload failed, falling back to disk:", error);
+      console.error("Firebase Storage upload failed:", error);
+      return NextResponse.json({ error: "Could not store this file. Check Firebase Storage configuration and try again." }, { status: 502 });
     }
   }
 
-  // Fallback to local disk
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Configure Firebase Storage before uploading files." }, { status: 503 });
+  }
+
+  // Local development only: deployed serverless filesystems are ephemeral.
   const uploadDirectory = join(process.cwd(), "public", "uploads");
   await mkdir(uploadDirectory, { recursive: true });
   await writeFile(join(uploadDirectory, filename), Buffer.from(await file.arrayBuffer()));

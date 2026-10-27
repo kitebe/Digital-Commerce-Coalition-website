@@ -45,7 +45,7 @@
   text-align: center;
 }
 
-.blog-section-heading h2,
+.blog-section-heading h1,
 .blog-contact h2 {
   color: var(--magenta);
   font-family: var(--site-font);
@@ -54,7 +54,7 @@
   line-height: 1;
 }
 
-.blog-section-heading h2 {
+.blog-section-heading h1 {
   margin-top: 18px;
 }
 
@@ -259,7 +259,7 @@
     padding-bottom: 88px;
   }
 
-  .blog-section-heading h2,
+  .blog-section-heading h1,
   .blog-contact h2 {
     font-size: clamp(38px, 11vw, 48px);
   }

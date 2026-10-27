@@ -8,7 +8,7 @@ import { jwtVerify, SignJWT } from "jose";
 export const CMS_SESSION_COOKIE = "dcc_cms_session";
 
 const getPassword = () => process.env.CMS_PASSWORD;
-const getSecret = () => process.env.CMS_SECRET || getPassword();
+const getSecret = () => process.env.CMS_SECRET || getPassword() || process.env.FIREBASE_PRIVATE_KEY;
 
 const hash = (value: string) =>
   createHmac("sha256", getSecret() || "unconfigured")
@@ -49,7 +49,8 @@ export async function verifyFirebaseIdToken(token: string, projectId: string) {
 }
 
 const getSecretKey = () => {
-  const secret = getSecret() || "default-fallback-secret-for-dev-only";
+  const secret = getSecret();
+  if (!secret) throw new Error("Configure CMS_SECRET before creating admin sessions.");
   return new TextEncoder().encode(secret);
 };
 

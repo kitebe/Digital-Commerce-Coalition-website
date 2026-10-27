@@ -15,9 +15,13 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Content studio
 
-Copy `.env.example` to `.env.local`, choose a strong password and secret, then
-restart the server. Open [http://localhost:3000/admin](http://localhost:3000/admin)
-to manage articles, events, publications, reports, and press coverage.
+Configure `.env.local` with the Firebase web app settings (`NEXT_PUBLIC_FIREBASE_*`)
+and Admin SDK credentials (`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`). Set a
+strong `CMS_SECRET` for session signing. Firebase's private key is used as a
+server-only fallback when a separate session secret is absent. Enable the sign-in
+providers used by your administrators, then restart the server. Open
+[http://localhost:3000/admin](http://localhost:3000/admin) to manage content.
+`CMS_PASSWORD` is also supported for password-based sessions. Never commit secrets.
 
 The content studio includes rich-text article and detail editing, draft and
 published states, authenticated previews, locked URL slugs, date/month pickers,
@@ -25,10 +29,11 @@ conflict-safe item updates, and homepage member management. Rich text supports
 headings, lists, links, quotes, code, tables, uploaded images, and YouTube
 embeds.
 
-CMS content is stored atomically in `data/cms-content.json`. Uploaded images and
-PDFs are stored in `public/uploads`. This storage model is intended for a
-persistent Node.js host; serverless hosts with ephemeral filesystems should use
-an external database and object store before production deployment.
+CMS content is stored in Firebase Firestore. Configure the Firebase Storage
+bucket (`NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`) and grant the service account access
+for image and PDF uploads. Production uploads fail with an actionable message if
+cloud storage is unavailable; they never fall back to an ephemeral server disk.
+Local disk uploads are supported only in development when no bucket is configured.
 
 The initial CMS content was migrated from the original JavaScript data files.
 To intentionally recreate the CMS data from those files, run `npm run seed:cms`.
@@ -54,3 +59,13 @@ detail pages use collection and slug paths:
 - `/press/example-coverage`
 
 Old query-parameter URLs permanently redirect to these canonical routes.
+
+## Regression checks
+
+Run `npm run typecheck`, `npm run build`, and `npm test`. Tests require Node.js
+22.15+ (24 recommended). Install Chromium once with `npx playwright install chromium`.
+The browser suite starts its own development server on port 3100 and uses the
+configured Firebase project for read-only page/content checks. CMS writes, user
+management, uploads, and Firebase sign-in are mocked in browser tests. Repository
+transaction tests use an in-memory Firestore double and run separately with
+`npm run test:store`.

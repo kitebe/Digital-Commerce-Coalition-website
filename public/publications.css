@@ -54,7 +54,7 @@
   text-align: center;
 }
 
-.publications-section-heading h2,
+.publications-section-heading h1,
 .publication-about h2,
 .publications-contact h2 {
   color: var(--magenta);
@@ -64,7 +64,7 @@
   line-height: 1;
 }
 
-.publications-section-heading h2 {
+.publications-section-heading h1 {
   margin-top: 18px;
 }
 
@@ -632,7 +632,7 @@
     padding-bottom: 88px;
   }
 
-  .publications-section-heading h2,
+  .publications-section-heading h1,
   .publication-about h2,
   .publications-contact h2 {
     font-size: clamp(38px, 11vw, 48px);
