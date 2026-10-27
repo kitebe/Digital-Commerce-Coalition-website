@@ -35,6 +35,7 @@ export function ErrorPageShell({
           <a href="/#focus" data-label="Focus Areas">Focus Areas</a>
           <a href="/#work" data-label="How We Work">How We Work</a>
           <a href="/blog" data-label="Thinking">Thinking</a>
+          <a href="/events" data-label="Events">Events</a>
         </nav>
       </header>
 
