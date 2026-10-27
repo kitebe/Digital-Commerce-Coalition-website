@@ -264,6 +264,13 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [slugUnlocked, setSlugUnlocked] = useState(false);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+  useEffect(() => {
+    if (fieldErrors.slug) {
+      const details = document.getElementById("cms-slug-details") as HTMLDetailsElement | null;
+      if (details) details.open = true;
+    }
+  }, [fieldErrors.slug]);
   const [viewMode, setViewMode] = useState<"visual" | "form">("visual");
   const [showUsers, setShowUsers] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -334,7 +341,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     confirmLabel: "Discard changes",
     tone: "danger",
   });
-  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); };
+  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); setSlugManuallyEdited(false); };
   const closeEditor = async () => { if (await canLeaveEditor()) resetEditor(); };
   const selectCollection = async (collection: CmsCollection, id?: string) => {
     if (!(await canLeaveEditor())) return;
@@ -353,7 +360,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     setDraft((current) => {
       if (!current) return current;
       const next = { ...current, [key]: value };
-      if (isNew && key === "title") next.slug = slugify(String(value)) || "untitled";
+      if (isNew && !slugManuallyEdited && key === "title") next.slug = slugify(String(value)).slice(0, 120).replace(/-+$/, "") || "untitled";
       if (isNew && activeCollection === "members" && key === "name" && !String(current.logoAlt || "").trim()) next.logoAlt = String(value);
       return next;
     });
@@ -402,7 +409,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const createItem = () => {
     if (!activeCollection) return;
     const next = configs[activeCollection].create(items.length);
-    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(true);
+    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(true); setSlugManuallyEdited(false);
   };
   const deleteItem = async () => {
     if (!activeCollection || !draft || isNew) return;
@@ -569,6 +576,61 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                 {itemStatus(draft) === "draft" ? <><button className="cms-secondary-button" onClick={() => void saveItem("save-draft")} disabled={status === "saving" || uploadingField !== null}>Save draft</button><button className="cms-primary-button" onClick={() => void saveItem("publish")} disabled={status === "saving" || uploadingField !== null}>Publish</button></> : <><button className="cms-secondary-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Unpublish this entry?", message: "The entry will be removed from the public website and returned to drafts.", confirmLabel: "Unpublish" }); if (confirmed) await saveItem("unpublish"); })()} disabled={status === "saving" || uploadingField !== null}>Unpublish</button><button className="cms-primary-button" onClick={() => void saveItem("save-published")} disabled={status === "saving" || uploadingField !== null}>{status === "saving" ? "Saving…" : "Save changes"}</button></>}
               </div>
             </header>
+            {hasSlug ? (
+              <details key={`${activeCollection}:${selectedId}`} id="cms-slug-details" className={`cms-slug-panel${fieldErrors.slug ? " has-error" : ""}${!isNew && !slugUnlocked ? " is-locked" : ""}`} aria-label="Page URL">
+                <summary className="cms-slug-summary">
+                  <span className="cms-slug-label">URL</span>
+                  <span className="cms-slug-path" title={`${collectionRouteBase[activeCollection]}/${String(draft.slug || "")}`}>{collectionRouteBase[activeCollection]}/{String(draft.slug || "")}</span>
+                  <span className="cms-slug-toggle"><span className="cms-slug-show">Edit</span><span className="cms-slug-hide">Done</span></span>
+                </summary>
+                <div className="cms-slug-editor">
+                <div className="cms-slug-control">
+                  <span className="cms-slug-prefix" id="cms-slug-prefix">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 .1l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7-.1l-3 3a5 5 0 0 0 7 7l1.7-1.7" /></svg>
+                    {collectionRouteBase[activeCollection]}/
+                  </span>
+                  <input
+                    id="cms-slug-input"
+                    aria-label="URL slug"
+                    aria-describedby={`cms-slug-prefix cms-slug-help${fieldErrors.slug ? " cms-slug-error" : ""}`}
+                    aria-invalid={Boolean(fieldErrors.slug)}
+                    value={String(draft.slug || "")}
+                    readOnly={!isNew && !slugUnlocked}
+                    disabled={status === "saving"}
+                    maxLength={120}
+                    placeholder="your-page-name"
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    spellCheck={false}
+                    onChange={(event) => {
+                      setSlugManuallyEdited(true);
+                      updateDraft("slug", event.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/-{2,}/g, "-").replace(/^-+/, ""));
+                    }}
+                    onBlur={() => {
+                      const normalized = slugify(String(draft.slug || ""));
+                      if (normalized !== draft.slug && (isNew || slugUnlocked)) updateDraft("slug", normalized);
+                    }}
+                  />
+                  {isNew ? (
+                    <button type="button" className="cms-slug-action" disabled={status === "saving"} onClick={() => {
+                      setSlugManuallyEdited(false);
+                      updateDraft("slug", slugify(String(draft.title || "")).slice(0, 120).replace(/-+$/, "") || "untitled");
+                    }}>Use title</button>
+                  ) : !slugUnlocked ? (
+                    <button type="button" className="cms-slug-action" disabled={status === "saving"} onClick={() => void (async () => {
+                      const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" });
+                      if (confirmed) {
+                        setSlugUnlocked(true);
+                        requestAnimationFrame(() => document.getElementById("cms-slug-input")?.focus());
+                      }
+                    })()}>Edit slug</button>
+                  ) : null}
+                </div>
+                <p id="cms-slug-help" className="cms-slug-help">{isNew ? slugManuallyEdited ? "Your custom URL stays the same when you edit the title." : "Created from your title. Edit the last part to make it your own." : slugUnlocked ? "Previous URLs will automatically redirect to the new one." : "The URL is locked to keep shared links consistent."}</p>
+                {fieldErrors.slug ? <p id="cms-slug-error" className="cms-field-error" role="alert">{fieldErrors.slug}</p> : null}
+                </div>
+              </details>
+            ) : null}
             <div className={`cms-editor-notice is-${status}`} role="status">{Object.keys(fieldErrors).length ? `Fix ${Object.keys(fieldErrors).length} highlighted field${Object.keys(fieldErrors).length === 1 ? "" : "s"}.` : (isDirty ? "Unsaved changes" : itemStatus(draft) === "published" ? "This entry is live on the website." : "This entry is only visible in the CMS.")}</div>
             {Object.keys(fieldErrors).length > 0 ? (
               <div className="cms-validation-summary" role="alert">
@@ -620,7 +682,6 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                     <aside className="cms-editor-aside">
                       <header className="cms-inspector-header"><div><strong>Entry settings</strong><span>{isNew ? `New ${activeConfig?.singular}` : `Updated ${formatUpdatedAt(draft.updatedAt)}`}</span></div><i className={`cms-status-badge is-${itemStatus(draft)}`}>{itemStatus(draft)}</i></header>
                       {sidebarFields.length ? <section className="cms-document-details"><p className="cms-aside-label">{activeConfig?.singular} details</p><div className="cms-sidebar-fields">{sidebarFields.map((field) => <CmsField key={field.key} field={field} value={draft[field.key]} error={fieldErrors[field.key]} uploading={false} onChange={(value) => updateDraft(field.key, value)} onUpload={async () => undefined} />)}</div></section> : null}
-                      {hasSlug ? <section className="cms-settings-panel"><p className="cms-aside-label">Settings</p><label className={`cms-field${fieldErrors.slug ? " has-error" : ""}`}><span>URL slug</span><input value={String(draft.slug || "")} readOnly={!slugUnlocked} onChange={(event) => updateDraft("slug", slugify(event.target.value))} /><small>{collectionRouteBase[activeCollection]}/{String(draft.slug || "")}</small>{fieldErrors.slug ? <small className="cms-field-error">{fieldErrors.slug}</small> : null}</label>{!slugUnlocked ? <button className="cms-unlock-button" onClick={() => void (async () => { const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" }); if (confirmed) setSlugUnlocked(true); })()}>Edit slug</button> : <p className="cms-settings-warning">Slug editing is unlocked. Save carefully.</p>}</section> : null}
                       {!isNew ? <section><p className="cms-aside-label">Display order</p><div className="cms-order-control"><span>Position {currentIndex + 1} of {items.length}</span><div><button onClick={() => void moveItem(-1)} disabled={currentIndex <= 0}>↑</button><button onClick={() => void moveItem(1)} disabled={currentIndex >= items.length - 1}>↓</button></div></div></section> : null}
                       <section className="cms-danger-zone"><p className="cms-aside-label">Entry actions</p><button onClick={isNew ? () => void closeEditor() : () => void deleteItem()}>{isNew ? "Discard entry" : "Delete entry"}</button></section>
                     </aside>
@@ -900,12 +961,6 @@ function VisualBlogEditor({
             </div>
           )}
           <figcaption>
-            <input
-              value={String(draft.image || "")}
-              onChange={(event) => updateDraft("image", event.target.value)}
-              placeholder="Paste image URL"
-              aria-label="Feature image URL"
-            />
             <div>
               <label>
                 {uploadingField === "image" ? "Uploading…" : draft.image ? "Replace image" : "Upload image"}
@@ -1061,17 +1116,10 @@ function VisualEventEditor({
           ) : (
             <div className="cms-live-arch-empty">
               <span>🖼️ Arch Hero Image</span>
-              <small>Upload image or paste image link below</small>
+              <small>Upload an event image below</small>
             </div>
           )}
           <div className="cms-live-image-overlay">
-            <input
-              type="text"
-              className="cms-live-url-input"
-              placeholder="Paste image URL (Unsplash, etc)..."
-              value={String(draft.image || "")}
-              onChange={(e) => updateDraft("image", e.target.value)}
-            />
             <div className="cms-live-upload-actions">
               <label className="cms-live-upload-btn">
                 {uploadingField === "image" ? "Uploading…" : "📁 Upload file"}
@@ -1453,7 +1501,7 @@ function CmsField({ field, value, error, uploading, onChange, onUpload }: { fiel
   return (
     <label className={`cms-field cms-field-${field.kind || "text"}${error ? " has-error" : ""}`}>
       <span>{field.label}</span>{field.help ? <small>{field.help}</small> : null}
-      {field.kind === "textarea" || field.kind === "repeater" ? <textarea rows={field.kind === "repeater" ? 5 : 4} value={stringValue} onChange={(event) => onChange(field.kind === "repeater" ? event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) : event.target.value)} /> : field.kind === "select" ? <select value={stringValue} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select> : field.kind === "asset" ? <div className="cms-asset-field"><input placeholder="Paste image URL or upload file..." value={stringValue} onChange={(event) => onChange(event.target.value)} /><label className="cms-upload-button">{uploading ? "Uploading…" : stringValue ? "Replace" : "Upload"}<input type="file" accept={field.accept} disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.target.value = ""; }} /></label>{stringValue ? <button type="button" className="cms-remove-asset" onClick={() => onChange(field.key === "pdf" ? null : "")}>Remove</button> : null}{stringValue && field.accept?.includes("image") ? <img className="cms-asset-preview" src={stringValue.replace(/^\.\//, "/")} alt="" /> : null}</div> : <input type={field.kind === "date" ? "date" : field.kind === "month" ? "month" : field.kind === "url" ? "url" : "text"} value={stringValue} onChange={(event) => onChange(event.target.value)} />}
+      {field.kind === "textarea" || field.kind === "repeater" ? <textarea rows={field.kind === "repeater" ? 5 : 4} value={stringValue} onChange={(event) => onChange(field.kind === "repeater" ? event.target.value.split("\n").map((line) => line.trim()).filter(Boolean) : event.target.value)} /> : field.kind === "select" ? <select value={stringValue} onChange={(event) => onChange(event.target.value)}>{field.options?.map((option) => <option key={option} value={option}>{option.charAt(0).toUpperCase() + option.slice(1)}</option>)}</select> : field.kind === "asset" ? <div className="cms-asset-field"><label className="cms-upload-button">{uploading ? "Uploading…" : stringValue ? "Replace" : "Upload"}<input type="file" accept={field.accept} disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void onUpload(file); event.target.value = ""; }} /></label>{stringValue ? <button type="button" className="cms-remove-asset" onClick={() => onChange(field.key === "pdf" ? null : "")}>Remove</button> : null}{stringValue && field.accept?.includes("image") ? <img className="cms-asset-preview" src={stringValue.replace(/^\.\//, "/")} alt="" /> : null}</div> : <input type={field.kind === "date" ? "date" : field.kind === "month" ? "month" : field.kind === "url" ? "url" : "text"} value={stringValue} onChange={(event) => onChange(event.target.value)} />}
       {error ? <small className="cms-field-error">{error}</small> : null}
     </label>
   );
