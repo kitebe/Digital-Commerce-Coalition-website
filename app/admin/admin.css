@@ -2333,7 +2333,6 @@ body.cms-body * { box-sizing: border-box; }
 .cms-slug-action:focus-visible { outline: 2px solid var(--cms-accent); outline-offset: -2px; }
 .cms-slug-action:disabled { opacity: .5; cursor: wait; }
 .cms-slug-help { margin: 0; color: #858a94; font-size: 12px; line-height: 1.5; }
-.cms-slug-panel.is-locked .cms-slug-control input { color: #858a94; }
 .cms-slug-panel.has-error .cms-slug-control { border-color: var(--cms-red); }
 @media (max-width: 600px) {
   .cms-slug-control { flex-wrap: wrap; }

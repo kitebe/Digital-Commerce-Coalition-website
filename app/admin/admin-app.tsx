@@ -263,7 +263,6 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
-  const [slugUnlocked, setSlugUnlocked] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   useEffect(() => {
     if (fieldErrors.slug) {
@@ -292,7 +291,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
         if (id) {
           if (id === "new") {
             const next = configs[col].create(getItems(initialContent, col).length);
-            setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setSlugUnlocked(true);
+            setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next));
           } else {
             const item = getItems(initialContent, col).find((entry) => entry.id === id);
             if (item) {
@@ -341,7 +340,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     confirmLabel: "Discard changes",
     tone: "danger",
   });
-  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false); setSlugManuallyEdited(false); };
+  const resetEditor = () => { setSelectedId(null); setDraft(null); setSavedSnapshot(""); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugManuallyEdited(false); };
   const closeEditor = async () => { if (await canLeaveEditor()) resetEditor(); };
   const selectCollection = async (collection: CmsCollection, id?: string) => {
     if (!(await canLeaveEditor())) return;
@@ -354,7 +353,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const selectItem = (item: CmsEntry) => {
     const next = clone(item as unknown as EditorItem);
     if (activeCollection) migrateDates(next, activeCollection);
-    setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(false);
+    setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle");
   };
   const updateDraft = (key: string, value: unknown) => {
     setDraft((current) => {
@@ -403,13 +402,12 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
     const result = await parseResponse(response);
     if (applySaveResult(result, response, wasNew)) {
       setToast({ message: action === "publish" || action === "save-published" ? "Published changes saved." : action === "unpublish" ? "Entry moved to drafts." : "Draft saved.", type: "success" });
-      setSlugUnlocked(false);
     }
   };
   const createItem = () => {
     if (!activeCollection) return;
     const next = configs[activeCollection].create(items.length);
-    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugUnlocked(true); setSlugManuallyEdited(false);
+    setSelectedId("new"); setDraft(next); setSavedSnapshot(snapshot(next)); setFieldErrors({}); setToast({ message: "", type: null }); setStatus("idle"); setSlugManuallyEdited(false);
   };
   const deleteItem = async () => {
     if (!activeCollection || !draft || isNew) return;
@@ -577,7 +575,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
               </div>
             </header>
             {hasSlug ? (
-              <details key={`${activeCollection}:${selectedId}`} id="cms-slug-details" className={`cms-slug-panel${fieldErrors.slug ? " has-error" : ""}${!isNew && !slugUnlocked ? " is-locked" : ""}`} aria-label="Page URL">
+              <details key={`${activeCollection}:${selectedId}`} id="cms-slug-details" className={`cms-slug-panel${fieldErrors.slug ? " has-error" : ""}`} aria-label="Page URL" onToggle={(event) => { if (event.currentTarget.open) document.getElementById("cms-slug-input")?.focus(); }}>
                 <summary className="cms-slug-summary">
                   <span className="cms-slug-label">URL</span>
                   <span className="cms-slug-path" title={`${collectionRouteBase[activeCollection]}/${String(draft.slug || "")}`}>{collectionRouteBase[activeCollection]}/{String(draft.slug || "")}</span>
@@ -595,7 +593,6 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                     aria-describedby={`cms-slug-prefix cms-slug-help${fieldErrors.slug ? " cms-slug-error" : ""}`}
                     aria-invalid={Boolean(fieldErrors.slug)}
                     value={String(draft.slug || "")}
-                    readOnly={!isNew && !slugUnlocked}
                     disabled={status === "saving"}
                     maxLength={120}
                     placeholder="your-page-name"
@@ -608,7 +605,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                     }}
                     onBlur={() => {
                       const normalized = slugify(String(draft.slug || ""));
-                      if (normalized !== draft.slug && (isNew || slugUnlocked)) updateDraft("slug", normalized);
+                      if (normalized !== draft.slug) updateDraft("slug", normalized);
                     }}
                   />
                   {isNew ? (
@@ -616,17 +613,9 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
                       setSlugManuallyEdited(false);
                       updateDraft("slug", slugify(String(draft.title || "")).slice(0, 120).replace(/-+$/, "") || "untitled");
                     }}>Use title</button>
-                  ) : !slugUnlocked ? (
-                    <button type="button" className="cms-slug-action" disabled={status === "saving"} onClick={() => void (async () => {
-                      const confirmed = await dialog.confirm({ title: "Edit the published URL?", message: "Changing this URL can affect bookmarks and shared links. The previous URL will continue to resolve.", confirmLabel: "Edit URL" });
-                      if (confirmed) {
-                        setSlugUnlocked(true);
-                        requestAnimationFrame(() => document.getElementById("cms-slug-input")?.focus());
-                      }
-                    })()}>Edit slug</button>
                   ) : null}
                 </div>
-                <p id="cms-slug-help" className="cms-slug-help">{isNew ? slugManuallyEdited ? "Your custom URL stays the same when you edit the title." : "Created from your title. Edit the last part to make it your own." : slugUnlocked ? "Previous URLs will automatically redirect to the new one." : "The URL is locked to keep shared links consistent."}</p>
+                <p id="cms-slug-help" className="cms-slug-help">{isNew ? slugManuallyEdited ? "Your custom URL stays the same when you edit the title." : "Created from your title. Edit the last part to make it your own." : "Previous URLs will automatically redirect to the new one."}</p>
                 {fieldErrors.slug ? <p id="cms-slug-error" className="cms-field-error" role="alert">{fieldErrors.slug}</p> : null}
                 </div>
               </details>
