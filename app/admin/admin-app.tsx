@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { CmsMailingList } from "./mailing-list";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import Image from "@tiptap/extension-image";
@@ -273,6 +274,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const [viewMode, setViewMode] = useState<"visual" | "form">("visual");
   const [showUsers, setShowUsers] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showMailingList, setShowMailingList] = useState(false);
 
   const items = useMemo(() => content && activeCollection ? getItems(content, activeCollection) : [], [activeCollection, content]);
   const isNew = selectedId === "new";
@@ -344,7 +346,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
   const closeEditor = async () => { if (await canLeaveEditor()) resetEditor(); };
   const selectCollection = async (collection: CmsCollection, id?: string) => {
     if (!(await canLeaveEditor())) return;
-    setActiveCollection(collection); setShowUsers(false); setShowAnalytics(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
+    setActiveCollection(collection); setShowUsers(false); setShowAnalytics(false); setShowMailingList(false); resetEditor(); setSearchQuery(""); setStatusFilter("all");
     if (id && content) {
       const item = getItems(content, collection).find((entry) => entry.id === id);
       if (item) { const next = clone(item as unknown as EditorItem); migrateDates(next, collection); setSelectedId(item.id); setDraft(next); setSavedSnapshot(snapshot(next)); }
@@ -491,10 +493,11 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
       <aside className="cms-sidebar">
         <a className="cms-brand" href="/admin" aria-label="Digital Commerce Coalition CMS" style={{ padding: "6px 2px 0", marginBottom: "44px" }}><img src="/assets/Dcc_logo.svg" alt="Digital Commerce Coalition" style={{ height: "48px", width: "auto", maxWidth: "205px", objectFit: "contain" }} /></a>
         <nav className="cms-nav" aria-label="CMS sections">
-          <button className={!activeCollection && !showUsers && !showAnalytics ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); setShowAnalytics(false); resetEditor(); } })()}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
-          <button className={showAnalytics ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowAnalytics(true); setShowUsers(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span><span>Analytics</span></button>
-          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers && !showAnalytics ? "is-active" : ""} onClick={() => void selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
-          <button className={showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowUsers(true); setShowAnalytics(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
+          <button className={!activeCollection && !showUsers && !showAnalytics && !showMailingList ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setActiveCollection(null); setShowUsers(false); setShowAnalytics(false); setShowMailingList(false); resetEditor(); } })()}><span className="cms-nav-icon">⌂</span><span>Dashboard</span></button>
+          <button className={showAnalytics ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowAnalytics(true); setShowMailingList(false); setShowUsers(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg></span><span>Analytics</span></button>
+          {collectionOrder.map((collection) => <button key={collection} className={activeCollection === collection && !showUsers && !showAnalytics && !showMailingList ? "is-active" : ""} onClick={() => void selectCollection(collection)}><span className="cms-nav-icon">{configs[collection].label.charAt(0)}</span><span>{configs[collection].label}</span><span className="cms-nav-count">{getItems(content, collection).length}</span></button>)}
+          <button className={showMailingList ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowAnalytics(false); setShowUsers(false); setActiveCollection(null); resetEditor(); setShowMailingList(true); } })()}><span className="cms-nav-icon" aria-hidden="true">✉</span><span>Mailing list</span></button>
+          <button className={showUsers ? "is-active" : ""} onClick={() => void (async () => { if (await canLeaveEditor()) { setShowUsers(true); setShowAnalytics(false); setShowMailingList(false); setActiveCollection(null); resetEditor(); } })()}><span className="cms-nav-icon">⚇</span><span>Admin Users</span></button>
         </nav>
         <div className="cms-sidebar-footer">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 10px' }}>
@@ -504,7 +507,7 @@ function AdminAppContent({ configured, authenticated, initialContent, loginError
         </div>
       </aside>
       <main className="cms-main">
-        {showUsers ? <CmsUsers /> : showAnalytics ? <CmsAnalytics /> : !activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
+        {showMailingList ? <CmsMailingList /> : showUsers ? <CmsUsers /> : showAnalytics ? <CmsAnalytics /> : !activeCollection ? <CmsOverview content={content} onOpen={selectCollection} /> : (
           <>
             {(!draft || activeCollection === "members") ? (
               <>

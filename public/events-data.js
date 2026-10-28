@@ -117,3 +117,33 @@ const renderEventGroup = (type) => {
 
 renderEventGroup("upcoming");
 renderEventGroup("past");
+
+const eventSignupForm = document.querySelector("#event-updates-form");
+if (eventSignupForm) {
+  eventSignupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = eventSignupForm.querySelector('button[type="submit"]');
+    const status = eventSignupForm.querySelector(".events-signup-status");
+    if (button.disabled) return;
+    const fields = new FormData(eventSignupForm);
+    button.disabled = true;
+    button.textContent = "Signing up…";
+    status.textContent = "";
+    try {
+      const response = await fetch("/api/mailing-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: fields.get("email"), consent: fields.get("consent") === "on", website: fields.get("website") }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "We couldn’t save your signup. Please try again.");
+      eventSignupForm.reset();
+      status.textContent = data.message;
+    } catch (error) {
+      status.textContent = error.message || "We couldn’t save your signup. Please try again.";
+    } finally {
+      button.disabled = false;
+      button.innerHTML = 'Sign up for updates <span aria-hidden="true">↗</span>';
+    }
+  });
+}

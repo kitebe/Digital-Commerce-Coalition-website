@@ -42,6 +42,19 @@ schema. Existing version-one data can be upgraded independently with
 `npm run migrate:cms-v2`; the migration is idempotent and creates a backup
 before changing the content file.
 
+## Event mailing list
+
+The Events page collects email addresses with explicit consent. Signups are stored
+in the Firestore `mailingListSubscribers` collection using the existing Admin SDK
+credentials. Duplicate email addresses keep their original signup date. In `/admin`,
+open **Mailing list** to search subscribers, refresh the list, or export all signups
+as CSV (including signup time, source, and consent). Subscriber access requires a
+CMS session. Email campaigns are sent separately using the exported list.
+
+Run `npm run test:mailing-list` for storage, validation, and access-control checks
+against a Firestore test double, and `npx playwright test tests/mailing-list.spec.ts`
+for the signup and admin interface checks.
+
 ## Production
 
 ```bash

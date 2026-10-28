@@ -119,16 +119,23 @@
             <p class="events-empty-label">More soon</p>
             <h3>Our next gathering is taking shape.</h3>
             <p>
-              No upcoming events have been announced yet. Get in touch with the
-              Coalition secretariat to hear about future convenings.
+              No upcoming events have been announced yet. Join our mailing list
+              to be the first to hear about future Coalition convenings.
             </p>
-            <a
-              class="events-button"
-              href="mailto:secretariat@digitalcommercecoalition.com?subject=Digital%20Commerce%20Coalition%20event%20updates"
-            >
-              Get event updates
-              <span aria-hidden="true">↗</span>
-            </a>
+            <form class="events-signup" id="event-updates-form">
+              <label for="event-updates-email">Email address</label>
+              <input id="event-updates-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" maxlength="254" required />
+              <div class="events-signup-trap" aria-hidden="true">
+                <label for="event-updates-website">Leave this field empty</label>
+                <input id="event-updates-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+              </div>
+              <label class="events-signup-consent">
+                <input name="consent" type="checkbox" required />
+                <span>I agree to receive email updates about Coalition events.</span>
+              </label>
+              <button class="events-button" type="submit">Sign up for updates <span aria-hidden="true">↗</span></button>
+              <p class="events-signup-status" role="status" aria-live="polite"></p>
+            </form>
           </div>
         </div>
         <div

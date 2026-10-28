@@ -2341,3 +2341,10 @@ body.cms-body * { box-sizing: border-box; }
   .cms-slug-control input { flex-basis: 100px; padding-inline: 8px; font-size: 12px; }
   .cms-slug-action { margin-left: auto; min-height: 36px; }
 }
+
+.cms-mailing-count { padding: 0 24px; color: #64748b; font-size: 14px; }
+.cms-mailing-table { overflow-x: auto; }
+.cms-mailing-table table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+.cms-mailing-table th, .cms-mailing-table td { padding: 16px 24px; border-bottom: 1px solid #e2e8f0; }
+.cms-mailing-table th { color: #64748b; font-size: 12px; }
+.cms-mailing-table td:first-child { overflow-wrap: anywhere; }
