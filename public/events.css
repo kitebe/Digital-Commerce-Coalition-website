@@ -834,3 +834,18 @@
 .events-signup-status { margin: 0; font-size: 14px; line-height: 1.5; }
 .events-signup-status:empty { display: none; }
 .events-signup-trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+
+.events-signup.is-success .events-signup-status {
+  padding: 12px 0;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.5;
+  animation: events-signup-confirm 450ms ease-out both;
+}
+@keyframes events-signup-confirm {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .events-signup.is-success .events-signup-status { animation: none; }
+}

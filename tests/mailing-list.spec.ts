@@ -19,8 +19,14 @@ test("event signup validates consent, reports errors and allows retry on mobile"
   await expect(form.getByRole("status")).toHaveText("Please try again shortly.");
   await expect(form.getByLabel("Email address")).toHaveValue("reader@example.com");
   await form.getByRole("button", { name: "Sign up for updates" }).click();
-  await expect(form.getByRole("status")).toHaveText("You’re on the list!");
-  await expect(form.getByLabel("Email address")).toHaveValue("");
+  await expect(form.getByRole("status")).toHaveText("You’re on the list! We’ll email you about future Coalition events.");
+  await expect(form.getByLabel("Email address")).toHaveCount(0);
+  await expect(form.getByRole("checkbox")).toHaveCount(0);
+  await expect(form.getByRole("button")).toHaveCount(0);
+  await expect(form.getByRole("status")).toBeFocused();
+  await expect(form.getByRole("status")).toHaveCSS("animation-name", "events-signup-confirm");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(form.getByRole("status")).toHaveCSS("animation-name", "none");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await form.screenshot({ path: "test-results/mailing-list-mobile.png" });
 });

@@ -137,8 +137,11 @@ if (eventSignupForm) {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "We couldn’t save your signup. Please try again.");
-      eventSignupForm.reset();
-      status.textContent = data.message;
+      status.textContent = "You’re on the list! We’ll email you about future Coalition events.";
+      eventSignupForm.replaceChildren(status);
+      eventSignupForm.classList.add("is-success");
+      status.tabIndex = -1;
+      status.focus({ preventScroll: true });
     } catch (error) {
       status.textContent = error.message || "We couldn’t save your signup. Please try again.";
     } finally {
